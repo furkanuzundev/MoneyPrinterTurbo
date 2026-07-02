@@ -36,3 +36,4 @@ test_*.py
 streamlit.log
 .codegraph
 .understand-anything
+.superpowers/
