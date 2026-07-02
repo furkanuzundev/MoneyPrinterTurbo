@@ -43,8 +43,10 @@ mimari olarak imkânsız.
 
 1. **Render ≤ ~2 dk:** 9:16 çıktı 720×1280, ffmpeg `veryfast` preset, klip
    indirmeleri paralel. Mevcut ~4-5 dk → hedef ~1,5-2 dk.
-   ⚠ Bu, tasarımın ilk doğrulanacak varsayımı: implementasyon 1. haftasında
-   prototiple ölçülür; tutmazsa SLO metni ve autoscaler eşikleri güncellenir.
+   ✓ Ölçüldü (Task 10, Apple Silicon Mac — Hetzner CPX51 değil): render aşaması
+   tek başına ~74 sn'ye indi, toplam uçtan uca ~99-105 sn — hedef tutuyor.
+   Detay ve sınırlamalar: `docs/superpowers/specs/2026-07-03-phase1-slo-results.md`.
+   Faz 3'te production donanımında (Hetzner CPX51) tekrar doğrulanacak.
 2. **Gecikmesiz scale-up:** Autoscaler 10 sn'de bir bakar; `bekleyen slot
    ihtiyacı > boş slot` ise farkı kapatacak makineleri anında talep eder
    (scale-up'ta cooldown yok; scale-down'da 10 dk boşta bekleme + drain).
