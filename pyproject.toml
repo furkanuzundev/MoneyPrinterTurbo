@@ -50,3 +50,9 @@ packages = ["app"]
 [tool.uv]
 # 当前项目以应用运行形态为主，不作为可发布的 Python 包安装。
 package = false
+
+[dependency-groups]
+dev = [
+    "fakeredis==2.26.2",
+    "pytest==8.4.2",
+]
