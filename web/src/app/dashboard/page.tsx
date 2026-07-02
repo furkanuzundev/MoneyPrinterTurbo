@@ -1,10 +1,14 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { getBalance } from "@/lib/credits/ledger";
+import { getBalance, grantWelcomeBonus } from "@/lib/credits/ledger";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const balance = await getBalance(db, session!.user!.id!);
+  const userId = session?.user?.id;
+  if (!userId) redirect("/signin");
+  await grantWelcomeBonus(db, userId); // idempotent: kayıt anında verilememişse telafi
+  const balance = await getBalance(db, userId);
   return (
     <div>
       <h1 className="mb-4 text-2xl font-semibold">Dashboard</h1>
