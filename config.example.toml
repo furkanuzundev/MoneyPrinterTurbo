@@ -1,6 +1,10 @@
 [app]
 video_source = "pexels" # "pexels" or "pixabay"
 
+# Çıktı çözünürlüğü: "1080p" (varsayılan) veya "720p".
+# 720p, kısa video platformları için yeterlidir ve render süresini belirgin düşürür.
+video_quality = "1080p"
+
 # 是否隐藏配置面板
 hide_config = false
 

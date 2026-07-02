@@ -151,6 +151,19 @@ def get_ffmpeg_binary():
     return utils.get_ffmpeg_binary()
 
 
+def get_target_resolution(aspect: VideoAspect) -> tuple[int, int]:
+    """Config'teki video_quality'ye göre hedef çözünürlük.
+
+    "720p" seçiliyse doğal 1080 tabanlı çözünürlük 2/3 oranında küçültülür
+    (1080x1920 -> 720x1280). Bilinmeyen değerde doğal çözünürlük korunur.
+    """
+    width, height = aspect.to_resolution()
+    quality = str(config.app.get("video_quality", "1080p")).strip().lower()
+    if quality == "720p":
+        width, height = round(width * 2 / 3), round(height * 2 / 3)
+    return width, height
+
+
 def _get_configured_video_codec() -> str:
     """
     读取用户配置的视频编码器。
@@ -562,7 +575,7 @@ def combine_videos(
     output_dir = os.path.dirname(combined_video_path)
 
     aspect = VideoAspect(video_aspect)
-    video_width, video_height = aspect.to_resolution()
+    video_width, video_height = get_target_resolution(aspect)
 
     processed_clips = []
     subclipped_items = []
@@ -901,7 +914,7 @@ def generate_video(
     params: VideoParams,
 ):
     aspect = VideoAspect(params.video_aspect)
-    video_width, video_height = aspect.to_resolution()
+    video_width, video_height = get_target_resolution(aspect)
 
     logger.info(f"generating video: {video_width} x {video_height}")
     logger.info(f"  ① video: {video_path}")
