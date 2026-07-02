@@ -21,7 +21,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "database" },
   events: {
     async createUser({ user }) {
-      if (user.id) await grantWelcomeBonus(db, user.id);
+      if (!user.id) return;
+      try {
+        await grantWelcomeBonus(db, user.id);
+      } catch (e) {
+        // Bonus verilemezse kayıt akışını bozma; dashboard ilk yüklemede
+        // idempotent olarak telafi eder.
+        console.error("welcome bonus grant failed at signup", e);
+      }
     },
   },
   callbacks: {
