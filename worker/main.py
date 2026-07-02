@@ -40,14 +40,17 @@ def process_job(r, worker_id: str, job: dict, raw: str) -> bool:
     logger.info(f"processing task {task_id} (attempt {attempts + 1}/{MAX_ATTEMPTS})")
     try:
         params = VideoParams(**job["params"])
-        result = tm.start(task_id, params)
-        if not result:
-            raise RuntimeError("task returned no result")
-        queue.complete(r, worker_id, raw)
-        logger.success(f"task {task_id} completed")
-        return True
     except Exception as e:
-        logger.error(f"task {task_id} failed: {str(e)}")
+        # Deterministik parametre hatası: retry anlamsız, direkt kalıcı failed.
+        logger.error(f"task {task_id} has invalid params, not retrying: {str(e)}")
+        sm.state.update_task(task_id, state=const.TASK_STATE_FAILED)
+        queue.complete(r, worker_id, raw)
+        return False
+    try:
+        result = tm.start(task_id, params)
+    except Exception as e:
+        # Beklenmeyen crash (infra): retry hakkı var.
+        logger.error(f"task {task_id} crashed: {str(e)}")
         # Önce işin bir sonraki durumu var edilir (retry kuyruğu veya kalıcı failed),
         # sonra processing listesinden çıkarılır; arada süreç ölürse iş kaybolmaz,
         # en kötü ihtimalle requeue_stale kopyayı geri taşır (çift işleme > kayıp).
@@ -59,6 +62,15 @@ def process_job(r, worker_id: str, job: dict, raw: str) -> bool:
             logger.error(f"task {task_id} permanently failed")
         queue.complete(r, worker_id, raw)
         return False
+    if not result:
+        # task.start kendi terminal FAILED durumunu zaten yazdı; tekrar deneme
+        # kullanıcıya FAILED→PROCESSING flip'i gösterir. Terminal kabul et.
+        logger.error(f"task {task_id} failed inside pipeline (terminal, no retry)")
+        queue.complete(r, worker_id, raw)
+        return False
+    queue.complete(r, worker_id, raw)
+    logger.success(f"task {task_id} completed")
+    return True
 
 
 def _heartbeat_loop(r, worker_id: str, stop: threading.Event):
