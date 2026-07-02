@@ -1,0 +1,27 @@
+# Yerel geliştirme bağımlılıkları. Redis zaten `reelate-redis` adıyla çalışıyorsa
+# önce onu durdurun veya sadece postgres servisini başlatın:
+#   docker compose -f docker-compose.dev.yml up -d postgres
+#
+# Not: Host port 5432 sistemde çalışan başka bir Postgres (Postgres.app) tarafından
+# kullanıldığı ve 5433 de başka bir projenin container'ı tarafından dolu olduğu için
+# bu dev stack 5434 portuna map edilmiştir (bkz. web/.env.example).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: reelate-postgres
+    environment:
+      POSTGRES_USER: reelate
+      POSTGRES_PASSWORD: reelate_dev
+      POSTGRES_DB: reelate
+    ports:
+      - "5434:5432"
+    volumes:
+      - reelate_pg_data:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+    container_name: reelate-redis-compose
+    ports:
+      - "6379:6379"
+    profiles: ["full"]
+volumes:
+  reelate_pg_data:
