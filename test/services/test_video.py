@@ -482,20 +482,21 @@ class TestVideoService(unittest.TestCase):
                 with patch.object(
                     vd, "_open_video_clip_quietly", side_effect=_open_fake_video_clip
                 ):
-                    with patch.object(
-                        vd, "_write_videofile_with_codec_fallback"
-                    ) as write_mock:
-                        with patch.object(vd, "concat_video_clips_with_ffmpeg"):
-                            with patch.object(vd, "delete_files"):
-                                result = vd.combine_videos(
-                                    combined_video_path=combined_video_path,
-                                    video_paths=list(video_durations.keys()),
-                                    audio_file=os.path.join(temp_dir, "audio.mp3"),
-                                    video_aspect=vd.VideoAspect.portrait,
-                                    video_concat_mode=vd.VideoConcatMode.sequential,
-                                    video_transition_mode=None,
-                                    max_clip_duration=10,
-                                )
+                    with patch.object(vd, "get_target_resolution", return_value=(1080, 1920)):
+                        with patch.object(
+                            vd, "_write_videofile_with_codec_fallback"
+                        ) as write_mock:
+                            with patch.object(vd, "concat_video_clips_with_ffmpeg"):
+                                with patch.object(vd, "delete_files"):
+                                    result = vd.combine_videos(
+                                        combined_video_path=combined_video_path,
+                                        video_paths=list(video_durations.keys()),
+                                        audio_file=os.path.join(temp_dir, "audio.mp3"),
+                                        video_aspect=vd.VideoAspect.portrait,
+                                        video_concat_mode=vd.VideoConcatMode.sequential,
+                                        video_transition_mode=None,
+                                        max_clip_duration=10,
+                                    )
 
         self.assertEqual(result, combined_video_path)
         self.assertEqual(write_mock.call_count, 4)
