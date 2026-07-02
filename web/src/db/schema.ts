@@ -6,8 +6,10 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters";
 
 // ---- Auth.js standart tablolar (https://authjs.dev/getting-started/adapters/drizzle)
@@ -62,19 +64,32 @@ export const verificationTokens = pgTable(
 );
 
 // ---- Reelate tabloları (spec Bölüm 4)
-export const creditLedger = pgTable("credit_ledger", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  delta: integer("delta").notNull(),
-  kind: text("kind", {
-    enum: ["purchase", "spend", "refund", "welcome_bonus"],
-  }).notNull(),
-  jobId: uuid("job_id"),
-  purchaseId: text("purchase_id"),
-  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
-});
+export const creditLedger = pgTable(
+  "credit_ledger",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    kind: text("kind", {
+      enum: ["purchase", "spend", "refund", "welcome_bonus"],
+    }).notNull(),
+    jobId: uuid("job_id"),
+    purchaseId: text("purchase_id"),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("credit_ledger_refund_job_unique")
+      .on(t.jobId)
+      .where(sql`kind = 'refund'`),
+    uniqueIndex("credit_ledger_welcome_user_unique")
+      .on(t.userId)
+      .where(sql`kind = 'welcome_bonus'`),
+  ],
+);
 
 export const videoJobs = pgTable("video_jobs", {
   id: uuid("id").primaryKey().defaultRandom(),

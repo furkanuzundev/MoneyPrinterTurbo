@@ -92,3 +92,29 @@ describe("refundJob", () => {
     expect(await refundJob(db, "00000000-0000-0000-0000-000000000000")).toBe(false);
   });
 });
+
+describe("db-level idempotency backstop", () => {
+  it("rejects a second refund row for the same job even without app checks", async () => {
+    await grantWelcomeBonus(db, userId);
+    const { jobId } = await spendCreditsForJob(db, userId, JOB);
+    await refundJob(db, jobId);
+    await expect(
+      db.insert(schema.creditLedger).values({
+        userId,
+        delta: 2,
+        kind: "refund",
+        jobId,
+      }),
+    ).rejects.toThrow();
+  });
+  it("rejects a second welcome_bonus row for the same user", async () => {
+    await grantWelcomeBonus(db, userId);
+    await expect(
+      db.insert(schema.creditLedger).values({
+        userId,
+        delta: 2,
+        kind: "welcome_bonus",
+      }),
+    ).rejects.toThrow();
+  });
+});

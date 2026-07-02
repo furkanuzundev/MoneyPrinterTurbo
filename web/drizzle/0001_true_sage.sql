@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "credit_ledger_refund_job_unique" ON "credit_ledger" USING btree ("job_id") WHERE kind = 'refund';--> statement-breakpoint
+CREATE UNIQUE INDEX "credit_ledger_welcome_user_unique" ON "credit_ledger" USING btree ("user_id") WHERE kind = 'welcome_bonus';
