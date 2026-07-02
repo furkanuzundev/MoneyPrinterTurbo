@@ -83,6 +83,11 @@ def _heartbeat_loop(r, worker_id: str, stop: threading.Event):
 
 
 def run() -> None:
+    if not config.app.get("enable_redis"):
+        raise SystemExit(
+            "worker requires enable_redis=true in config.toml: "
+            "MemoryState is per-process and task states would be lost"
+        )
     worker_id = f"{socket.gethostname()}-{os.getpid()}"
     r = _redis_client()
     stop = threading.Event()

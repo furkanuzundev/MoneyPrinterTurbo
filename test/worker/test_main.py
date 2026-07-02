@@ -1,6 +1,7 @@
 import json
 
 import fakeredis
+import pytest
 
 from worker import main as worker_main
 from worker import queue
@@ -131,3 +132,12 @@ def test_invalid_params_fail_without_retry(monkeypatch):
     assert r.llen(queue.PENDING_KEY) == 0
     assert r.llen("reelate:queue:processing:worker-a") == 0
     assert state_calls == [("task-1", {"state": worker_main.const.TASK_STATE_FAILED})]
+
+
+def test_run_exits_without_redis_enabled(monkeypatch):
+    # MemoryState süreç-içi (per-process) tutulur; enable_redis kapalıyken
+    # worker çalışırsa task durumları sessizce kaybolur. Erken ve gürültülü
+    # şekilde fail etmeli.
+    monkeypatch.setattr(worker_main.config, "app", {})
+    with pytest.raises(SystemExit):
+        worker_main.run()
