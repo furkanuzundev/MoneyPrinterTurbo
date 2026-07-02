@@ -12,6 +12,9 @@ ffmpeg_preset = "veryfast"
 # Stok klip indirme eşzamanlılığı. 4, Pexels CDN için güvenli bir değerdir.
 download_concurrency = 4
 
+# Stok klip önbelleğinin (storage/cache_videos) üst sınırı, GB.
+material_cache_max_gb = 50
+
 # 是否隐藏配置面板
 hide_config = false
 

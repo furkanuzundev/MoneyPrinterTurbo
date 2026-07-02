@@ -256,6 +256,7 @@ def save_video(video_url: str, save_dir: str = "") -> str:
 
     # if video already exists, return the path
     if os.path.exists(video_path) and os.path.getsize(video_path) > 0:
+        os.utime(video_path, None)  # LRU: isabet eden dosyayı tazele
         logger.info(f"video already exists: {video_path}")
         return video_path
 
@@ -300,6 +301,36 @@ def save_video(video_url: str, save_dir: str = "") -> str:
                         f"failed to close video clip: {video_path}, error: {str(close_error)}"
                     )
     return ""
+
+
+def enforce_material_cache_limit(
+    cache_dir: str | None = None, max_bytes: int | None = None
+) -> int:
+    """Önbellek dizinini LRU mantığıyla max_bytes altına indirir."""
+    cache_dir = cache_dir or utils.storage_dir("cache_videos")
+    if max_bytes is None:
+        max_gb = float(config.app.get("material_cache_max_gb", 50))
+        max_bytes = int(max_gb * 1024**3)
+    entries = []
+    for name in os.listdir(cache_dir):
+        path = os.path.join(cache_dir, name)
+        if os.path.isfile(path):
+            stat = os.stat(path)
+            entries.append((stat.st_mtime, stat.st_size, path))
+    total = sum(size for _, size, _ in entries)
+    removed = 0
+    for _, size, path in sorted(entries):
+        if total <= max_bytes:
+            break
+        try:
+            os.remove(path)
+            total -= size
+            removed += 1
+        except OSError as e:
+            logger.warning(f"failed to evict cache file {path}: {str(e)}")
+    if removed:
+        logger.info(f"evicted {removed} cached clips to enforce cache limit")
+    return removed
 
 
 def _download_candidates_parallel(
@@ -405,6 +436,7 @@ def download_videos(
         max_clip_duration=max_clip_duration,
         concurrency=concurrency,
     )
+    enforce_material_cache_limit()
     logger.success(f"downloaded {len(video_paths)} videos")
     return video_paths
 
