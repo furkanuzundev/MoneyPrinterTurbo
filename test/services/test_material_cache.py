@@ -56,6 +56,31 @@ def test_missing_cache_dir_is_noop(tmp_path):
     assert removed == 0
 
 
+def test_recently_downloaded_files_are_never_evicted(tmp_path):
+    # İki dosya da EVICTION_MIN_AGE_SECONDS altında (30s < 600s): başka bir
+    # worker'ın yeni indirdiği/kullanmakta olduğu klipler olabilir, asla silinmemeli.
+    _make_file(tmp_path / "a.mp4", 100, age_seconds=30)
+    _make_file(tmp_path / "b.mp4", 100, age_seconds=30)
+    removed = material_svc.enforce_material_cache_limit(
+        cache_dir=str(tmp_path), max_bytes=100
+    )
+    assert removed == 0
+    assert (tmp_path / "a.mp4").exists()
+    assert (tmp_path / "b.mp4").exists()
+
+
+def test_partial_download_files_are_skipped_during_eviction(tmp_path):
+    # .part dosyaları (indirme sürüyor) eviction taramasına hiç girmemeli.
+    _make_file(tmp_path / "old.mp4", 100, age_seconds=3600)
+    _make_file(tmp_path / "in-progress.mp4.part", 100, age_seconds=3600)
+    removed = material_svc.enforce_material_cache_limit(
+        cache_dir=str(tmp_path), max_bytes=0
+    )
+    assert removed == 1
+    assert not (tmp_path / "old.mp4").exists()
+    assert (tmp_path / "in-progress.mp4.part").exists()
+
+
 class _FakeResponse:
     def __init__(self, content: bytes):
         self.content = content

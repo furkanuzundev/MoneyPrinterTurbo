@@ -1,6 +1,7 @@
 import os
 import random
 import threading
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
@@ -17,6 +18,10 @@ from app.utils import utils
 # Thread-safe counter for API key rotation
 _api_key_counter = 0
 _api_key_lock = threading.Lock()
+
+# Eviction bu yaştan daha genç dosyalara asla dokunmaz: başka bir worker'ın
+# yeni indirdiği veya hâlâ kullanmakta olduğu klipleri silmemek için.
+EVICTION_MIN_AGE_SECONDS = 600
 
 
 def _get_tls_verify() -> bool:
@@ -329,15 +334,20 @@ def enforce_material_cache_limit(
         max_bytes = int(max_gb * 1024**3)
     entries = []
     for name in os.listdir(cache_dir):
+        if name.endswith(".part"):
+            continue  # indirmesi süren dosyalar eviction taramasına hiç girmez
         path = os.path.join(cache_dir, name)
         if os.path.isfile(path):
             stat = os.stat(path)
             entries.append((stat.st_mtime, stat.st_size, path))
     total = sum(size for _, size, _ in entries)
     removed = 0
-    for _, size, path in sorted(entries):
+    now = time.time()
+    for mtime, size, path in sorted(entries):
         if total <= max_bytes:
             break
+        if now - mtime < EVICTION_MIN_AGE_SECONDS:
+            continue  # yeni indirilen/kullanımdaki klipleri asla silme
         try:
             os.remove(path)
             total -= size
