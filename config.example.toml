@@ -5,6 +5,10 @@ video_source = "pexels" # "pexels" or "pixabay"
 # 720p, kısa video platformları için yeterlidir ve render süresini belirgin düşürür.
 video_quality = "1080p"
 
+# ffmpeg x264 encode hız/kalite dengesi: ultrafast..veryslow. veryfast, kalite
+# kaybı algılanmadan render süresini ciddi kısaltır.
+ffmpeg_preset = "veryfast"
+
 # 是否隐藏配置面板
 hide_config = false
 

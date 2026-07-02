@@ -255,6 +255,10 @@ def _disable_runtime_video_codec(codec: str, reason: str):
     )
 
 
+def _get_ffmpeg_preset() -> str:
+    return str(config.app.get("ffmpeg_preset", "veryfast")).strip() or "veryfast"
+
+
 def _get_temp_audio_dir(output_dir: str) -> str:
     """
     Return the directory to use for MoviePy's temporary audio file.
@@ -281,7 +285,9 @@ def _fallback_write_videofile(clip, output_file: str, failed_codec: str, reason:
     文件被占用、目录权限、杀软拦截等通用 IO 问题。只有 libx264 能成功写出时，
     才能判断原始失败大概率来自硬件编码器本身，避免误伤后续任务。
     """
-    clip.write_videofile(output_file, codec=_DEFAULT_VIDEO_CODEC, **kwargs)
+    write_kwargs = dict(kwargs)
+    write_kwargs.setdefault("preset", _get_ffmpeg_preset())
+    clip.write_videofile(output_file, codec=_DEFAULT_VIDEO_CODEC, **write_kwargs)
     _disable_runtime_video_codec(failed_codec, reason)
     return _DEFAULT_VIDEO_CODEC
 
@@ -294,8 +300,11 @@ def _write_videofile_with_codec_fallback(clip, output_file: str, codec: str, **k
     生成任务不能因为高级编码器不可用而整体失败，所以这里把回退集中处理。
     """
     effective_codec = _get_effective_video_codec(codec)
+    write_kwargs = dict(kwargs)
+    if effective_codec == _DEFAULT_VIDEO_CODEC:
+        write_kwargs.setdefault("preset", _get_ffmpeg_preset())
     try:
-        clip.write_videofile(output_file, codec=effective_codec, **kwargs)
+        clip.write_videofile(output_file, codec=effective_codec, **write_kwargs)
         return effective_codec
     except Exception as exc:
         if effective_codec == _DEFAULT_VIDEO_CODEC:
@@ -326,6 +335,31 @@ def _format_ffmpeg_concat_path(file_path: str) -> str:
     return _escape_ffmpeg_concat_path(absolute_path.replace("\\", "/"))
 
 
+def _build_concat_command(
+    codec: str, concat_list_file: str, output_file: str, threads: int
+) -> list[str]:
+    command = [
+        utils.get_ffmpeg_binary(),
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        concat_list_file,
+        "-c:v",
+        codec,
+        "-threads",
+        str(threads or 2),
+        "-pix_fmt",
+        "yuv420p",
+    ]
+    if codec == _DEFAULT_VIDEO_CODEC:
+        command += ["-preset", _get_ffmpeg_preset()]
+    command.append(output_file)
+    return command
+
+
 def concat_video_clips_with_ffmpeg(
     clip_files: List[str], output_file: str, threads: int, output_dir: str
 ):
@@ -334,27 +368,8 @@ def concat_video_clips_with_ffmpeg(
         for clip_file in clip_files:
             fp.write(f"file '{_format_ffmpeg_concat_path(clip_file)}'\n")
 
-    def build_command(codec: str) -> list[str]:
-        return [
-            utils.get_ffmpeg_binary(),
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            concat_list_file,
-            "-c:v",
-            codec,
-            "-threads",
-            str(threads or 2),
-            "-pix_fmt",
-            "yuv420p",
-            output_file,
-        ]
-
     def run_concat(codec: str):
-        command = build_command(codec)
+        command = _build_concat_command(codec, concat_list_file, output_file, threads)
         # 使用 ffmpeg 只做一次串联与编码，避免 MoviePy 逐段合并时反复重编码，
         # 从而降低画质劣化与颜色偏移风险。
         result = subprocess.run(
