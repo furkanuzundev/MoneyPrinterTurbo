@@ -9,6 +9,9 @@ video_quality = "1080p"
 # kaybı algılanmadan render süresini ciddi kısaltır.
 ffmpeg_preset = "veryfast"
 
+# Stok klip indirme eşzamanlılığı. 4, Pexels CDN için güvenli bir değerdir.
+download_concurrency = 4
+
 # 是否隐藏配置面板
 hide_config = false
 

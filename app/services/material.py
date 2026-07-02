@@ -1,6 +1,7 @@
 import os
 import random
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from urllib.parse import urlencode
 
@@ -301,6 +302,44 @@ def save_video(video_url: str, save_dir: str = "") -> str:
     return ""
 
 
+def _download_candidates_parallel(
+    video_items: list,
+    save_dir: str,
+    needed_duration: float,
+    max_clip_duration: int,
+    concurrency: int,
+) -> List[str]:
+    """Adaylari concurrency'lik partiler halinde paralel indirir.
+
+    Parti tamamlaninca toplam sure kontrol edilir; needed_duration asilinca
+    kalan adaylar indirilmez. Basarisiz/gecersiz indirmeler atlanir.
+    """
+    video_paths: List[str] = []
+    total_duration = 0.0
+    index = 0
+    with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
+        while index < len(video_items) and total_duration <= needed_duration:
+            batch = video_items[index : index + max(1, concurrency)]
+            index += len(batch)
+            futures = [
+                pool.submit(save_video, video_url=item.url, save_dir=save_dir)
+                for item in batch
+            ]
+            for item, future in zip(batch, futures):
+                try:
+                    saved_video_path = future.result()
+                except Exception as e:
+                    logger.error(
+                        f"failed to download video: {utils.to_json(item)} => {str(e)}"
+                    )
+                    continue
+                if not saved_video_path:
+                    continue
+                video_paths.append(saved_video_path)
+                total_duration += min(max_clip_duration, item.duration)
+    return video_paths
+
+
 def download_videos(
     task_id: str,
     search_terms: List[str],
@@ -354,31 +393,18 @@ def download_videos(
     logger.info(
         f"found total videos: {len(valid_video_items)}, required duration: {audio_duration} seconds, found duration: {found_duration} seconds"
     )
-    video_paths = []
-
     concat_mode_value = getattr(video_concat_mode, "value", video_concat_mode)
     if concat_mode_value == VideoConcatMode.random.value:
         random.shuffle(valid_video_items)
 
-    total_duration = 0.0
-    for item in valid_video_items:
-        try:
-            logger.info(f"downloading video: {item.url}")
-            saved_video_path = save_video(
-                video_url=item.url, save_dir=material_directory
-            )
-            if saved_video_path:
-                logger.info(f"video saved: {saved_video_path}")
-                video_paths.append(saved_video_path)
-                seconds = min(max_clip_duration, item.duration)
-                total_duration += seconds
-                if total_duration > audio_duration:
-                    logger.info(
-                        f"total duration of downloaded videos: {total_duration} seconds, skip downloading more"
-                    )
-                    break
-        except Exception as e:
-            logger.error(f"failed to download video: {utils.to_json(item)} => {str(e)}")
+    concurrency = int(config.app.get("download_concurrency", 4))
+    video_paths = _download_candidates_parallel(
+        video_items=valid_video_items,
+        save_dir=material_directory,
+        needed_duration=audio_duration,
+        max_clip_duration=max_clip_duration,
+        concurrency=concurrency,
+    )
     logger.success(f"downloaded {len(video_paths)} videos")
     return video_paths
 
