@@ -147,3 +147,16 @@ def test_save_video_removes_temp_on_invalid_download(tmp_path, monkeypatch):
     assert result == ""
     assert glob.glob(str(tmp_path / "*.part")) == []
     assert glob.glob(str(tmp_path / "*.mp4")) == []
+
+
+def test_failed_download_leaves_no_part_file(tmp_path, monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(material_svc.requests, "get", boom)
+    try:
+        material_svc.save_video("http://example.com/x.mp4", save_dir=str(tmp_path))
+    except RuntimeError:
+        pass
+    leftovers = [p for p in os.listdir(tmp_path) if p.endswith(".part")]
+    assert leftovers == []

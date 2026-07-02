@@ -281,16 +281,20 @@ def save_video(video_url: str, save_dir: str = "") -> str:
     # benzersiz bir temp dosyaya indirilir; doğrulama da temp üzerinde yapılır,
     # sadece geçerliyse os.replace ile final path'e atomik taşınır.
     tmp_path = f"{video_path}.{uuid.uuid4().hex}.part"
-    with open(tmp_path, "wb") as f:
-        f.write(
-            requests.get(
-                video_url,
-                headers=headers,
-                proxies=config.proxy,
-                verify=_get_tls_verify(),
-                timeout=(60, 240),
-            ).content
-        )
+    try:
+        with open(tmp_path, "wb") as f:
+            f.write(
+                requests.get(
+                    video_url,
+                    headers=headers,
+                    proxies=config.proxy,
+                    verify=_get_tls_verify(),
+                    timeout=(60, 240),
+                ).content
+            )
+    except Exception:
+        _remove_quietly(tmp_path)
+        raise
 
     # Bu arada başka bir worker aynı videoyu indirip bitirmiş olabilir:
     # kazanan dosya kalır, kendi temp'imizi atarız.
