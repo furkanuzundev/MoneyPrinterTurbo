@@ -70,3 +70,28 @@ def test_empty_result_treated_as_failure(monkeypatch):
     job, raw = _claimed(r)
     assert worker_main.process_job(r, "worker-a", job, raw) is False
     assert r.llen(queue.PENDING_KEY) == 1
+
+
+def test_failure_path_enqueues_before_complete(monkeypatch):
+    r = _redis()
+    order = []
+    # Job kurulumu (kendi içinde queue.enqueue çağırır) patch'lerden ÖNCE yapılır;
+    # worker_main.queue ile queue aynı modül nesnesi olduğundan patch sonrası
+    # yapılan her enqueue/complete çağrısı (kurulum dahil) order'a yazılırdı.
+    job, raw = _claimed(r)
+    real_enqueue, real_complete = queue.enqueue, queue.complete
+    monkeypatch.setattr(
+        worker_main.queue,
+        "enqueue",
+        lambda *a, **k: (order.append("enqueue"), real_enqueue(*a, **k))[1],
+    )
+    monkeypatch.setattr(
+        worker_main.queue,
+        "complete",
+        lambda *a, **k: (order.append("complete"), real_complete(*a, **k))[1],
+    )
+    monkeypatch.setattr(
+        worker_main.tm, "start", lambda task_id, params, stop_at="video": None
+    )
+    worker_main.process_job(r, "worker-a", job, raw)
+    assert order == ["enqueue", "complete"]

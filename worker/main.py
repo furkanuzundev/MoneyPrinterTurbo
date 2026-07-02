@@ -48,13 +48,16 @@ def process_job(r, worker_id: str, job: dict, raw: str) -> bool:
         return True
     except Exception as e:
         logger.error(f"task {task_id} failed: {str(e)}")
-        queue.complete(r, worker_id, raw)
+        # Önce işin bir sonraki durumu var edilir (retry kuyruğu veya kalıcı failed),
+        # sonra processing listesinden çıkarılır; arada süreç ölürse iş kaybolmaz,
+        # en kötü ihtimalle requeue_stale kopyayı geri taşır (çift işleme > kayıp).
         if attempts + 1 < MAX_ATTEMPTS:
             queue.enqueue(r, task_id, job["params"], attempts=attempts + 1)
             logger.info(f"task {task_id} requeued")
         else:
             sm.state.update_task(task_id, state=const.TASK_STATE_FAILED)
             logger.error(f"task {task_id} permanently failed")
+        queue.complete(r, worker_id, raw)
         return False
 
 
