@@ -4,6 +4,13 @@ Desen: BRPOPLPUSH ile pending -> processing:{worker_id}. Worker canlılığı
 heartbeat anahtarıyla izlenir; heartbeat'i düşen worker'ın processing
 listesi requeue_stale ile pending'e geri taşınır. Böylece worker/makine
 ölümünde iş kaybolmaz (spec Bölüm 3/9).
+
+Sözleşme: claim() ilk heartbeat'i kendisi set eder (pop işleminden önce),
+böylece iş processing listesine taşındığı andan itibaren worker canlı
+görünür ve requeue_stale ile arada çalınamaz. Çağıran taraf, işi
+işlerken TTL'den daha kısa aralıklarla heartbeat() çağırmaya devam
+etmelidir; aksi halde worker hâlâ çalışıyor olsa bile ölü sayılıp işi
+geri kuyruğa alınabilir.
 """
 
 import json
@@ -30,6 +37,7 @@ def enqueue(r, task_id: str, params: dict, attempts: int = 0) -> None:
 
 
 def claim(r, worker_id: str, timeout: int = 5):
+    heartbeat(r, worker_id)  # claim anından itibaren canlı görün: requeue_stale yarışını kapatır
     if timeout > 0:
         raw = r.brpoplpush(PENDING_KEY, _processing_key(worker_id), timeout=timeout)
     else:

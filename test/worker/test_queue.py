@@ -40,7 +40,8 @@ def test_complete_removes_from_processing():
 def test_requeue_stale_moves_dead_workers_jobs():
     r = _redis()
     queue.enqueue(r, "task-1", {})
-    queue.claim(r, "dead-worker", timeout=0)  # heartbeat yok -> ölü
+    queue.claim(r, "dead-worker", timeout=0)
+    r.delete("reelate:worker:alive:dead-worker")  # worker öldü: heartbeat süresi doldu
     moved = queue.requeue_stale(r)
     assert moved == 1
     assert r.llen(queue.PENDING_KEY) == 1
@@ -61,6 +62,18 @@ def test_attempts_preserved_through_requeue():
     r = _redis()
     queue.enqueue(r, "task-1", {}, attempts=1)
     queue.claim(r, "dead-worker", timeout=0)
+    r.delete("reelate:worker:alive:dead-worker")  # worker öldü: heartbeat süresi doldu
     queue.requeue_stale(r)
     job, _ = queue.claim(r, "worker-b", timeout=0)
     assert job["attempts"] == 1
+
+
+def test_requeue_stale_does_not_steal_freshly_claimed_job():
+    r = _redis()
+    queue.enqueue(r, "task-1", {})
+    queue.claim(r, "worker-a", timeout=0)
+    # worker-a henüz heartbeat döngüsünü başlatmadı; claim içindeki
+    # ilk heartbeat işi korumalı
+    moved = queue.requeue_stale(r)
+    assert moved == 0
+    assert r.llen("reelate:queue:processing:worker-a") == 1
