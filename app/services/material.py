@@ -1,6 +1,7 @@
 import os
 import random
 import threading
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from urllib.parse import urlencode
@@ -242,6 +243,13 @@ def search_videos_coverr(
     return []
 
 
+def _remove_quietly(path: str) -> None:
+    try:
+        os.remove(path)
+    except Exception as remove_error:
+        logger.warning(f"failed to remove file: {path}, error: {str(remove_error)}")
+
+
 def save_video(video_url: str, save_dir: str = "") -> str:
     if not save_dir:
         save_dir = utils.storage_dir("cache_videos")
@@ -264,8 +272,11 @@ def save_video(video_url: str, save_dir: str = "") -> str:
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
     }
 
-    # if video does not exist, download it
-    with open(video_path, "wb") as f:
+    # Aynı URL'yi eşzamanlı indiren iki worker birbirini bozmasın diye önce
+    # benzersiz bir temp dosyaya indirilir; doğrulama da temp üzerinde yapılır,
+    # sadece geçerliyse os.replace ile final path'e atomik taşınır.
+    tmp_path = f"{video_path}.{uuid.uuid4().hex}.part"
+    with open(tmp_path, "wb") as f:
         f.write(
             requests.get(
                 video_url,
@@ -276,30 +287,33 @@ def save_video(video_url: str, save_dir: str = "") -> str:
             ).content
         )
 
+    # Bu arada başka bir worker aynı videoyu indirip bitirmiş olabilir:
+    # kazanan dosya kalır, kendi temp'imizi atarız.
     if os.path.exists(video_path) and os.path.getsize(video_path) > 0:
+        _remove_quietly(tmp_path)
+        os.utime(video_path, None)
+        return video_path
+
+    if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
         clip = None
         try:
-            clip = VideoFileClip(video_path)
+            clip = VideoFileClip(tmp_path)
             duration = clip.duration
             fps = clip.fps
             if duration > 0 and fps > 0:
+                os.replace(tmp_path, video_path)
                 return video_path
         except Exception as e:
-            logger.warning(f"invalid video file: {video_path} => {str(e)}")
-            try:
-                os.remove(video_path)
-            except Exception as remove_error:
-                logger.warning(
-                    f"failed to remove invalid video file: {video_path}, error: {str(remove_error)}"
-                )
+            logger.warning(f"invalid video file: {tmp_path} => {str(e)}")
         finally:
             if clip is not None:
                 try:
                     clip.close()
                 except Exception as close_error:
                     logger.warning(
-                        f"failed to close video clip: {video_path}, error: {str(close_error)}"
+                        f"failed to close video clip: {tmp_path}, error: {str(close_error)}"
                     )
+    _remove_quietly(tmp_path)
     return ""
 
 
