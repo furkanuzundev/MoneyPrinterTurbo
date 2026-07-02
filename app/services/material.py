@@ -308,6 +308,8 @@ def enforce_material_cache_limit(
 ) -> int:
     """Önbellek dizinini LRU mantığıyla max_bytes altına indirir."""
     cache_dir = cache_dir or utils.storage_dir("cache_videos")
+    if not os.path.isdir(cache_dir):
+        return 0
     if max_bytes is None:
         max_gb = float(config.app.get("material_cache_max_gb", 50))
         max_bytes = int(max_gb * 1024**3)

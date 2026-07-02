@@ -45,3 +45,11 @@ def test_cache_hit_refreshes_mtime(tmp_path, monkeypatch):
     result = material_svc.save_video(url, save_dir=str(tmp_path))
     assert result == str(path)
     assert os.path.getmtime(path) > before
+
+
+def test_missing_cache_dir_is_noop(tmp_path):
+    missing = tmp_path / "does-not-exist"
+    removed = material_svc.enforce_material_cache_limit(
+        cache_dir=str(missing), max_bytes=100
+    )
+    assert removed == 0
