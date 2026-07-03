@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  creditsForDuration,
-  estimateDurationSeconds,
-} from "@/lib/credits/pricing";
+import { creditsForDuration } from "@/lib/credits/pricing";
 import { scriptFromScenes, type Scene } from "@/lib/jobs/scenes";
 import { VOICES } from "@/lib/jobs/options";
 import { formatDuration } from "@/lib/jobs/display";
@@ -14,6 +11,7 @@ export function ScriptStep({
   scenes,
   voice,
   aspect,
+  targetSeconds,
   balance,
   busy,
   onScenesChange,
@@ -25,6 +23,7 @@ export function ScriptStep({
   scenes: Scene[];
   voice: string;
   aspect: string;
+  targetSeconds: number;
   balance: number;
   busy: "script" | "job" | null;
   onScenesChange: (scenes: Scene[]) => void;
@@ -33,8 +32,9 @@ export function ScriptStep({
   onBack: () => void;
 }) {
   const script = scriptFromScenes(scenes);
-  const estimate = estimateDurationSeconds(script);
-  const credits = Math.max(1, creditsForDuration(estimate));
+  // Süre ve kredi kullanıcının seçtiği hedef uzunluğu yansıtır; üretilen
+  // script'in kelime sayısından değil (backend de aynı hedefe göre düşer).
+  const credits = Math.max(1, creditsForDuration(targetSeconds));
   const canAfford = balance >= credits;
   const voiceLabel =
     VOICES.find((v) => v.id === voice)?.label.split(" (")[0] ?? voice;
@@ -62,7 +62,8 @@ export function ScriptStep({
           </button>
         </div>
         <p className="mb-[22px] text-[13.5px] text-muted/80">
-          AI drafted a ~{formatDuration(estimate)} script with {scenes.length}{" "}
+          AI drafted a ~{formatDuration(targetSeconds)} script with{" "}
+          {scenes.length}{" "}
           scenes. Edit any line &mdash; captions and price update live.
         </p>
 
@@ -133,7 +134,7 @@ export function ScriptStep({
           <div className="flex justify-between">
             <span className="text-muted/80">Est. duration</span>
             <span className="font-semibold text-bone">
-              ~{formatDuration(estimate)}
+              ~{formatDuration(targetSeconds)}
             </span>
           </div>
         </div>
