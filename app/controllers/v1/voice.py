@@ -22,6 +22,9 @@ def voice_preview(request: VoicePreviewRequest, background_tasks: BackgroundTask
     if not voice_name:
         raise HttpException(task_id="", status_code=400, message="voice_name is required")
 
+    if not voice_service.is_known_previewable_voice(voice_name):
+        raise HttpException(task_id="", status_code=400, message="unknown voice")
+
     text = request.text or voice_service.sample_text_for_voice(voice_name)
     temp_dir = utils.storage_dir("temp", create=True)
     audio_file = os.path.join(temp_dir, f"preview-{uuid4()}.mp3")

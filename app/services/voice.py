@@ -256,6 +256,46 @@ def is_chatterbox_voice(voice_name: str) -> bool:
     return (voice_name or "").startswith("chatterbox:")
 
 
+_known_azure_voice_bases_cache = None
+
+
+def is_known_previewable_voice(voice_name: str | None) -> bool:
+    """
+    快速校验预览接口收到的 voice_name 是否已知/可预览。
+
+    对于走特殊 provider 前缀（siliconflow:/gemini:/mimo:/elevenlabs:/
+    chatterbox:）、azure-v2 声音或“无配音” sentinel 的名字，一律放行，
+    交由 tts() 按原有逻辑处理。只有“看起来像普通 azure v1 声音”但
+    去掉性别后缀后不在已知 azure 声音表里的名字才会被判定为未知，
+    从而让预览接口可以快速返回 400，避免 edge-tts 内部重试导致的
+    ~60s 超时。
+    """
+    global _known_azure_voice_bases_cache
+
+    name = str(voice_name or "").strip()
+    if not name:
+        return False
+
+    if (
+        is_no_voice(name)
+        or is_siliconflow_voice(name)
+        or is_gemini_voice(name)
+        or is_mimo_voice(name)
+        or is_elevenlabs_voice(name)
+        or is_chatterbox_voice(name)
+        or is_azure_v2_voice(name)
+    ):
+        return True
+
+    if _known_azure_voice_bases_cache is None:
+        _known_azure_voice_bases_cache = {
+            item["name"] for item in _load_azure_voices()
+        }
+
+    base_name = parse_voice_name(name)
+    return base_name in _known_azure_voice_bases_cache
+
+
 def is_no_voice(voice_name: str | None) -> bool:
     """
     判断用户是否明确选择了“无配音”模式。
