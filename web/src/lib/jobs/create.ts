@@ -22,7 +22,10 @@ export async function createVideoJob(
 ): Promise<{ jobId: string; credits: number }> {
   const subject = input.subject.trim().slice(0, 300);
   const script = input.script.trim();
-  const terms = (input.terms ?? []).map(String).filter(Boolean).slice(0, 8);
+  const terms = (input.terms ?? [])
+    .map((t) => String(t).slice(0, 100))
+    .filter(Boolean)
+    .slice(0, 8);
   if (!subject) throw new ValidationError("Subject is required");
   if (!script) throw new ValidationError("Script is required");
   const words = script.split(/\s+/).length;
@@ -60,6 +63,10 @@ export async function createVideoJob(
       subtitle_enabled: true,
     });
   } catch (e) {
+    // Önce iade, sonra terminal işaret (status.ts ile aynı ders): iade geçici
+    // olarak başarısız olursa iş non-terminal kalır ve reconciliation/sync
+    // yeniden deneyebilir; kredi asla terminal-failed arkasında kaybolmaz.
+    await refundJob(db, jobId);
     await db
       .update(videoJobs)
       .set({
@@ -68,7 +75,6 @@ export async function createVideoJob(
         updatedAt: new Date(),
       })
       .where(eq(videoJobs.id, jobId));
-    await refundJob(db, jobId);
     throw e;
   }
   return { jobId, credits };

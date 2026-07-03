@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
 import Redis from "ioredis";
 import { Pool } from "pg";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 import { getBalance, grantWelcomeBonus, InsufficientCreditsError } from "@/lib/credits/ledger";
 import { createVideoJob, ValidationError } from "../create";
@@ -90,5 +90,20 @@ describe("createVideoJob", () => {
     expect(await getBalance(db, userId)).toBe(2); // iade edildi
     const [job] = await db.select().from(schema.videoJobs);
     expect(job.status).toBe("failed");
+  });
+  it("does not mark the job terminal if the refund itself fails", async () => {
+    const ledger = await import("@/lib/credits/ledger");
+    const spy = vi
+      .spyOn(ledger, "refundJob")
+      .mockRejectedValueOnce(new Error("transient refund error"));
+    const brokenRedis = {
+      lpush: () => Promise.reject(new Error("redis down")),
+    } as unknown as Redis;
+    await expect(
+      createVideoJob(db, brokenRedis, userId, INPUT),
+    ).rejects.toThrow("transient refund error");
+    spy.mockRestore();
+    const [job] = await db.select().from(schema.videoJobs);
+    expect(job.status).toBe("queued"); // terminal DEĞİL: iade denenebilir kalır
   });
 });
