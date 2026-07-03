@@ -1,0 +1,78 @@
+# Reelate üretim stack'i. Mevcut Traefik'e dışarıdan katılır (network: web).
+# Hiçbir port host'a açılmaz. Worker CPU limiti mevcut siteleri korur.
+name: reelate
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    container_name: reelate-web
+    env_file: /opt/reelate/.env.production
+    volumes:
+      - reelate_storage:/data/storage:ro
+    networks: [internal, web]
+    restart: unless-stopped
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "web"
+      traefik.http.routers.reelate.rule: "Host(`reelate.co`) || Host(`www.reelate.co`)"
+      traefik.http.routers.reelate.entrypoints: "websecure"
+      traefik.http.routers.reelate.tls: "true"
+      traefik.http.services.reelate.loadbalancer.server.port: "3000"
+    depends_on: [db, cache]
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/worker.Dockerfile
+    env_file: /opt/reelate/.env.production
+    volumes:
+      - reelate_storage:/app/storage
+      - /opt/reelate/config.toml:/app/config.toml:ro
+    networks: [internal]
+    restart: unless-stopped
+    cpus: "1.5"      # 2 replica x 1.5 = toplam 3 vCPU tavanı
+    deploy:
+      replicas: 2
+
+  monitor:
+    build:
+      context: ..
+      dockerfile: deploy/worker.Dockerfile
+    command: ["uv", "run", "--no-sync", "python", "-m", "worker.monitor"]
+    env_file: /opt/reelate/.env.production
+    networks: [internal]
+    restart: unless-stopped
+    cpus: "0.2"
+
+  db:
+    image: postgres:16-alpine
+    container_name: reelate-db
+    environment:
+      POSTGRES_USER: reelate
+      POSTGRES_PASSWORD: ${REELATE_DB_PASSWORD:?set in .env.production}
+      POSTGRES_DB: reelate
+    env_file: /opt/reelate/.env.production
+    volumes:
+      - reelate_pg:/var/lib/postgresql/data
+    networks: [internal]
+    restart: unless-stopped
+
+  cache:
+    image: redis:7-alpine
+    container_name: reelate-cache
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - reelate_redis:/data
+    networks: [internal]
+    restart: unless-stopped
+
+networks:
+  internal: {}
+  web:
+    external: true
+
+volumes:
+  reelate_pg: {}
+  reelate_redis: {}
+  reelate_storage: {}

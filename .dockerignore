@@ -28,3 +28,17 @@ logs/
 
 storage/
 config.toml
+
+# Reelate worker image build context (deploy/worker.Dockerfile) doesn't need
+# the Next.js app; keep it out to shrink context and avoid leaking web/.env*.
+# NOTE: this file is shared by both deploy/web.Dockerfile and
+# deploy/worker.Dockerfile (both use context: .. -> repo root), so it cannot
+# blanket-exclude web/ (the web image needs to COPY it). Instead we exclude
+# only the sensitive/generated bits that must never enter either image;
+# web/.dockerignore (used by local `docker build -f deploy/web.Dockerfile .`
+# tooling and editors) still documents the full web-specific ignore list.
+web/node_modules
+web/.next
+web/.env
+web/.env.*
+web/*.log
