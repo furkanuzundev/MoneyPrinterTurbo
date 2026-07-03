@@ -39,7 +39,9 @@
 
 1. Hetzner Cloud → Add Server → CPX51 → user-data: `deploy/worker-cloud-init.yaml`
    (aynı private network'e ekle veya public IP kullan)
-2. Makine açılınca: ana sunucudan
+2. Cloud-init durumunu doğrula: `ssh root@<yeni-ip> "cloud-init status --wait && test -d /opt/reelate-worker/src/deploy && echo CLONE-OK"`
+   — CLONE-OK görünmüyorsa makineyi sil ve adım 1'i tekrarla
+3. Makine açılınca: ana sunucudan
    `scp /opt/reelate/.env.production /opt/reelate/config.toml root@<yeni-ip>:/opt/reelate-worker/`
    — config.toml'daki `redis_host`'u ana makinenin IP'sine çevir; sonra yeni makinede
    `cd /opt/reelate-worker && docker compose up -d --build`
