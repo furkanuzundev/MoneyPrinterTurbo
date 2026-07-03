@@ -34,7 +34,7 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
 
   if (event.status === "failed") {
     return (
-      <Card className="border-red-900">
+      <Card className="border-0">
         <p className="font-medium text-red-400">Generation failed</p>
         <p className="mt-1 text-sm text-muted">
           {event.error ?? "Something went wrong. Your credits have been refunded."}
@@ -44,12 +44,14 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
   }
   if (event.status === "done") {
     return (
-      <div className="space-y-4">
-        <video
-          src={`/api/videos/${jobId}`}
-          controls
-          className="max-h-[70vh] rounded-xl border border-line"
-        />
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-full max-w-xs overflow-hidden rounded-xl bg-panel p-2">
+          <video
+            src={`/api/videos/${jobId}`}
+            controls
+            className="aspect-[9/16] w-full rounded-lg bg-ink object-cover"
+          />
+        </div>
         <a
           href={`/api/videos/${jobId}?download=1`}
           className={buttonClasses("primary", "inline-block")}
@@ -60,13 +62,16 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
     );
   }
   return (
-    <Card className="max-w-md">
+    <Card className="mx-auto max-w-md border-0">
       {event.status === "queued" && event.etaSeconds != null && (
         <p className="mb-2 text-sm text-muted">
           Waiting in queue — about {Math.max(1, Math.round(event.etaSeconds / 60))} min
         </p>
       )}
-      <p className="mb-3 font-display font-bold text-bone">{event.stage}…</p>
+      <div className="mb-3 flex items-baseline justify-between">
+        <p className="font-display text-xl font-bold text-bone">{event.stage}…</p>
+        <span className="font-mono-data text-sm text-muted">{event.progress}%</span>
+      </div>
       <div className="h-2 w-full overflow-hidden rounded bg-line">
         <div
           className="h-full bg-caption transition-all"
@@ -74,8 +79,7 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
         />
       </div>
       <p className="mt-2 text-sm text-muted">
-        <span className="font-mono-data">{event.progress}%</span> — you can
-        close this page; the video keeps rendering.
+        you can close this page; the video keeps rendering.
       </p>
     </Card>
   );

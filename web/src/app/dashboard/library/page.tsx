@@ -6,16 +6,7 @@ import { db } from "@/db";
 import { videoJobs } from "@/db/schema";
 import { getRedis } from "@/lib/jobs/queue";
 import { syncJobStatus } from "@/lib/jobs/status";
-import { CaptionChip } from "@/components/ui";
-
-const STATUS_LABELS: Record<string, string> = {
-  queued: "Queued",
-  script: "Preparing",
-  downloading: "Gathering footage",
-  rendering: "Rendering",
-  done: "Ready",
-  failed: "Failed",
-};
+import { JobRow } from "@/components/job-row";
 
 export default async function LibraryPage() {
   const session = await auth();
@@ -44,40 +35,36 @@ export default async function LibraryPage() {
         Library
       </h1>
       {refreshed.length === 0 ? (
-        <p className="text-muted">
-          No videos yet.{" "}
-          <Link href="/dashboard/create" className="text-bone underline">
-            Create your first one
+        <div className="flex flex-col items-center gap-4 rounded-xl bg-panel px-6 py-16 text-center">
+          <svg width="64" height="114" viewBox="0 0 64 114" fill="none" aria-hidden="true">
+            <rect
+              x="1.5"
+              y="1.5"
+              width="61"
+              height="111"
+              rx="10"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="text-line"
+            />
+          </svg>
+          <div>
+            <p className="font-display font-bold text-bone">No videos yet</p>
+            <p className="mt-1 text-sm text-muted">
+              Your generated videos will show up here.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/create"
+            className="text-sm text-bone underline hover:text-caption"
+          >
+            Create your first video
           </Link>
-          .
-        </p>
+        </div>
       ) : (
         <div className="max-w-3xl space-y-3">
           {refreshed.map((job) => (
-            <Link
-              key={job.id}
-              href={`/dashboard/jobs/${job.id}`}
-              className="flex items-center justify-between rounded-xl border border-line px-5 py-4 hover:border-muted"
-            >
-              <div>
-                <div className="font-medium text-bone">{job.subject}</div>
-                <div className="text-sm text-muted">
-                  {job.targetSeconds}s · {job.aspect} · {job.credits} credits ·{" "}
-                  {job.createdAt.toISOString().slice(0, 10)}
-                </div>
-              </div>
-              {job.status === "done" ? (
-                <CaptionChip>{STATUS_LABELS[job.status]}</CaptionChip>
-              ) : job.status === "failed" ? (
-                <span className="text-red-400">
-                  {STATUS_LABELS[job.status] ?? job.status}
-                </span>
-              ) : (
-                <span className="text-muted">
-                  {STATUS_LABELS[job.status] ?? job.status}
-                </span>
-              )}
-            </Link>
+            <JobRow key={job.id} job={job} />
           ))}
         </div>
       )}

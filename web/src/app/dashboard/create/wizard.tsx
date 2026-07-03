@@ -83,119 +83,110 @@ export function Wizard({ balance }: { balance: number }) {
     }
   }
 
+  const inputClasses =
+    "w-full rounded-[8px] border border-line bg-ink px-3 py-2 text-bone placeholder:text-muted focus-visible:outline-none focus:border-caption";
+
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <label className="mb-1 block text-sm text-muted">Video subject</label>
-        <input
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          placeholder="e.g. three morning habits that changed my life"
-          className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <Card className="space-y-6 border-0">
         <div>
-          <label className="mb-1 block text-sm text-muted">Length</label>
-          <select
-            value={targetSeconds}
-            onChange={(e) => setTargetSeconds(Number(e.target.value))}
-            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
-          >
-            {DURATION_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s >= 60 ? `${s / 60} min` : `${s} sec`} —{" "}
-                {creditsForDuration(s)} cr
-              </option>
-            ))}
-          </select>
+          <label className="mb-1 block text-sm text-muted">Video subject</label>
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="e.g. three morning habits that changed my life"
+            className={inputClasses}
+          />
         </div>
-        <div>
-          <label className="mb-1 block text-sm text-muted">Language</label>
-          <select
-            value={language}
-            onChange={(e) => {
-              setLanguage(e.target.value);
-              const first = VOICES.find((v) => v.language === e.target.value);
-              if (first) setVoice(first.id);
-            }}
-            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm text-muted">Voice</label>
-          <select
-            value={voice}
-            onChange={(e) => setVoice(e.target.value)}
-            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
-          >
-            {voices.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm text-muted">Format</label>
-          <select
-            value={aspect}
-            onChange={(e) => setAspect(e.target.value)}
-            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
-          >
-            {ASPECTS.map((a) => (
-              <option key={a} value={a}>
-                {a === "9:16" ? "9:16 (TikTok/Reels)" : a === "16:9" ? "16:9 (YouTube)" : "1:1 (Square)"}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <button
-        onClick={generateScript}
-        disabled={!subject.trim() || busy !== null}
-        className={buttonClasses("ghost")}
-      >
-        {busy === "script" ? "Writing script…" : script ? "Regenerate script" : "Generate script with AI"}
-      </button>
-      {script && (
-        <>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm text-muted">
-              Script (edit freely — price updates live)
-            </label>
-            <textarea
-              value={script}
-              onChange={(e) => setScript(e.target.value)}
-              rows={8}
-              className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
-            />
+            <label className="mb-1 block text-sm text-muted">Length</label>
+            <select
+              value={targetSeconds}
+              onChange={(e) => setTargetSeconds(Number(e.target.value))}
+              className={inputClasses}
+            >
+              {DURATION_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s >= 60 ? `${s / 60} min` : `${s} sec`} —{" "}
+                  {creditsForDuration(s)} cr
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm text-muted">
-              Stock footage search terms (comma separated)
-            </label>
-            <input
-              value={terms}
-              onChange={(e) => setTerms(e.target.value)}
-              className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
-            />
+            <label className="mb-1 block text-sm text-muted">Language</label>
+            <select
+              value={language}
+              onChange={(e) => {
+                setLanguage(e.target.value);
+                const first = VOICES.find((v) => v.language === e.target.value);
+                if (first) setVoice(first.id);
+              }}
+              className={inputClasses}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
           </div>
-          <Card className="p-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="text-sm text-muted">
-                Estimated length ~{Math.floor(estimate / 60)}:
-                {String(estimate % 60).padStart(2, "0")} · Cost:{" "}
-                <CaptionChip>
-                  <span className="font-mono-data">{credits}</span> credits
-                </CaptionChip>{" "}
-                · Balance: <span className="font-mono-data">{balance}</span>
+          <div>
+            <label className="mb-1 block text-sm text-muted">Voice</label>
+            <select
+              value={voice}
+              onChange={(e) => setVoice(e.target.value)}
+              className={inputClasses}
+            >
+              {voices.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-muted">Format</label>
+            <select
+              value={aspect}
+              onChange={(e) => setAspect(e.target.value)}
+              className={inputClasses}
+            >
+              {ASPECTS.map((a) => (
+                <option key={a} value={a}>
+                  {a === "9:16" ? "9:16 (TikTok/Reels)" : a === "16:9" ? "16:9 (YouTube)" : "1:1 (Square)"}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <button
+          onClick={generateScript}
+          disabled={!subject.trim() || busy !== null}
+          className={buttonClasses("ghost")}
+        >
+          {busy === "script" ? "Writing script…" : script ? "Regenerate script" : "Generate script with AI"}
+        </button>
+
+        {script && (
+          <>
+            <div>
+              <label className="mb-1 block text-sm text-muted">
+                Stock footage search terms (comma separated)
+              </label>
+              <input
+                value={terms}
+                onChange={(e) => setTerms(e.target.value)}
+                className={inputClasses}
+              />
+            </div>
+
+            <div className="-mx-6 -mb-6 flex flex-wrap items-center justify-between gap-4 rounded-b-2xl bg-elevated px-6 py-4">
+              <div className="font-mono-data text-sm text-muted">
+                ~{Math.floor(estimate / 60)}:
+                {String(estimate % 60).padStart(2, "0")} ·{" "}
+                <CaptionChip>{credits} credits</CaptionChip>
               </div>
               {canAfford ? (
                 <button
@@ -214,9 +205,24 @@ export function Wizard({ balance }: { balance: number }) {
                 </a>
               )}
             </div>
-          </Card>
-        </>
+          </>
+        )}
+      </Card>
+
+      {script && (
+        <Card className="space-y-1 border-0">
+          <label className="mb-1 block text-sm text-muted">
+            Script (edit freely — price updates live)
+          </label>
+          <textarea
+            value={script}
+            onChange={(e) => setScript(e.target.value)}
+            rows={12}
+            className="min-h-[240px] w-full rounded-[8px] border border-line bg-ink px-3 py-2 font-sans leading-relaxed text-bone focus-visible:outline-none focus:border-caption"
+          />
+        </Card>
       )}
+
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );

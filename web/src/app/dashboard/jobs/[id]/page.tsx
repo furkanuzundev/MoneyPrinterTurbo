@@ -17,7 +17,7 @@ export default async function JobPage({
   const [job] = await db.select().from(videoJobs).where(eq(videoJobs.id, id));
   if (!job || job.userId !== userId) notFound();
   return (
-    <div>
+    <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 font-display text-2xl font-bold tracking-[-0.02em] text-bone">
         {job.subject}
       </h1>

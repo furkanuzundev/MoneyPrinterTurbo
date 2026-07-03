@@ -16,7 +16,7 @@ export default async function BuyPage() {
           return (
             <Card
               key={pkg.key}
-              className={pkg.featured ? "relative border-caption" : "relative"}
+              className={pkg.featured ? "relative border border-caption" : "relative border-0"}
             >
               {pkg.featured && (
                 <CaptionChip className="absolute -top-3 left-6">

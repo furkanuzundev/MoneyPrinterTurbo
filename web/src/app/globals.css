@@ -7,6 +7,7 @@
   --color-bone: #edede6;
   --color-muted: #9ba0b4;
   --color-caption: #ffd84d;
+  --color-elevated: #202536;
 }
 
 @theme inline {
@@ -16,6 +17,7 @@
   --color-bone: var(--color-bone);
   --color-muted: var(--color-muted);
   --color-caption: var(--color-caption);
+  --color-elevated: var(--color-elevated);
 
   --font-display: var(--font-bricolage), sans-serif;
   --font-sans: var(--font-instrument), sans-serif;
