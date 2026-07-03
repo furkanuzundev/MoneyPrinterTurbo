@@ -191,7 +191,7 @@ export default async function Home() {
 
 function HeroPreviewCard() {
   return (
-    <div className="relative aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-2xl border border-line bg-panel">
+    <div className="relative aspect-[9/16] w-[260px] overflow-hidden rounded-2xl border border-line bg-panel sm:w-[320px]">
       {/* Gerçek Reelate çıktısı: 12 sn'lik sessiz döngü (366 KB) */}
       <video
         className="absolute inset-0 h-full w-full object-cover"
