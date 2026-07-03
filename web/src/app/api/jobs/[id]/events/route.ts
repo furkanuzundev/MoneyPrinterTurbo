@@ -23,13 +23,14 @@ export async function GET(
 
   const redis = getRedis();
   const encoder = new TextEncoder();
+  let cancelled = false;
   const stream = new ReadableStream({
     async start(controller) {
       const startedAt = Date.now();
       const send = (payload: object) =>
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
       try {
-        while (Date.now() - startedAt < MAX_LIFETIME_MS) {
+        while (!cancelled && Date.now() - startedAt < MAX_LIFETIME_MS) {
           const result = await syncJobStatus(db, redis, id);
           if (!result) break;
           send({
@@ -42,10 +43,17 @@ export async function GET(
           await new Promise((r) => setTimeout(r, POLL_MS));
         }
       } catch (e) {
-        console.error("sse stream error", e);
+        if (!cancelled) console.error("sse stream error", e);
       } finally {
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // cancel sonrası close çağrısı zaten kapalı stream'de patlayabilir
+        }
       }
+    },
+    cancel() {
+      cancelled = true; // istemci koptu: polling bir sonraki turda durur
     },
   });
   return new Response(stream, {
