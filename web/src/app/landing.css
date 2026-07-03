@@ -1,34 +1,22 @@
-/* Hero 9:16 preview card — pure CSS animation loop (~8s). */
+/* Landing-only animation: yüzen telefon, glow ve rec noktası. */
 
-@keyframes hero-caption-in {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  8% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  32% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  40% {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
+@keyframes hero-float {
+  0%,
   100% {
-    opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
   }
 }
 
-@keyframes hero-progress {
-  0% {
-    width: 4%;
-  }
+@keyframes hero-glow {
+  0%,
   100% {
-    width: 100%;
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
   }
 }
 
@@ -42,25 +30,12 @@
   }
 }
 
-.heroCaption {
-  animation: hero-caption-in 8s ease-in-out infinite;
-  opacity: 0;
+.heroFloat {
+  animation: hero-float 6s ease-in-out infinite;
 }
 
-.heroCaption[data-slot="1"] {
-  animation-delay: 0s;
-}
-
-.heroCaption[data-slot="2"] {
-  animation-delay: 1.2s;
-}
-
-.heroCaption[data-slot="3"] {
-  animation-delay: 2.4s;
-}
-
-.heroProgress {
-  animation: hero-progress 8s linear infinite;
+.heroGlow {
+  animation: hero-glow 5s ease-in-out infinite;
 }
 
 .heroRec {
@@ -68,24 +43,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroCaption {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-
-  .heroCaption[data-slot="2"],
-  .heroCaption[data-slot="3"] {
-    opacity: 0;
-  }
-
-  .heroProgress {
-    animation: none;
-    width: 42%;
-  }
-
+  .heroFloat,
+  .heroGlow,
   .heroRec {
     animation: none;
-    opacity: 1;
+  }
+
+  .heroGlow {
+    opacity: 0.55;
   }
 }
