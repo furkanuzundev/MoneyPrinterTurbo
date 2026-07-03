@@ -3,7 +3,7 @@ import type { Db } from "@/db";
 import { eq } from "drizzle-orm";
 import { videoJobs } from "@/db/schema";
 import { refundJob, spendCreditsForJob } from "@/lib/credits/ledger";
-import { creditsForDuration, estimateDurationSeconds } from "@/lib/credits/pricing";
+import { creditsForDuration } from "@/lib/credits/pricing";
 import { ASPECTS, MAX_SCRIPT_WORDS, VOICES } from "./options";
 import { enqueueJob } from "./queue";
 import {
@@ -31,6 +31,7 @@ export async function createVideoJob(
     scenes?: unknown;
     aspect: string;
     voice: string;
+    targetSeconds: number;
   },
 ): Promise<{ jobId: string; credits: number }> {
   const subject = input.subject.trim().slice(0, 300);
@@ -56,7 +57,12 @@ export async function createVideoJob(
     throw new ValidationError("Invalid voice");
   }
 
-  const targetSeconds = estimateDurationSeconds(script);
+  // Kredi ve süre otoritesi kullanıcının seçtiği hedef uzunluktur (wizard ile
+  // birebir tutarlı). Geçersiz/eksik değer 60s'e düşer.
+  const allowedTargets = [30, 60, 90, 180];
+  const targetSeconds = allowedTargets.includes(Number(input.targetSeconds))
+    ? Number(input.targetSeconds)
+    : 60;
   const credits = Math.max(1, creditsForDuration(targetSeconds));
 
   // Kredi düşme + iş kaydı tek transaction (2a). Enqueue bunun DIŞINDA:

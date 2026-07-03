@@ -71,6 +71,7 @@ export function Wizard({ balance }: { balance: number }) {
           terms,
           aspect: brief.aspect,
           voice: brief.voice,
+          targetSeconds: brief.targetSeconds,
         }),
       });
       const data = await res.json();

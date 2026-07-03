@@ -20,6 +20,7 @@ const INPUT = {
   terms: ["morning", "coffee"],
   aspect: "9:16",
   voice: "en-US-JennyNeural-Female",
+  targetSeconds: 30,
 };
 
 beforeEach(async () => {
@@ -59,10 +60,10 @@ describe("createVideoJob", () => {
     expect(payload.task_id).toBe(jobId);
     expect(payload.params.match_materials_to_script).toBe(true);
   });
-  it("prices longer scripts higher", async () => {
+  it("prices longer target lengths higher", async () => {
     const { credits } = await createVideoJob(db, redis, userId, {
       ...INPUT,
-      script: Array(150).fill("word").join(" "), // 60 sn -> 2 kredi
+      targetSeconds: 60, // 60 sn -> 2 kredi
     });
     expect(credits).toBe(2);
   });
@@ -87,11 +88,20 @@ describe("createVideoJob", () => {
     ).rejects.toThrow(ValidationError);
   });
   it("throws InsufficientCreditsError without touching the queue", async () => {
-    const expensive = Array(600).fill("word").join(" "); // 240 sn -> 8 kredi > 2
     await expect(
-      createVideoJob(db, redis, userId, { ...INPUT, script: expensive }),
+      createVideoJob(db, redis, userId, { ...INPUT, targetSeconds: 180 }), // 6 kredi > 2
     ).rejects.toThrow(InsufficientCreditsError);
     expect(await redis.llen(PENDING_KEY)).toBe(0);
+  });
+  it("charges credits by target length, not script word count", async () => {
+    // Kısa script ama targetSeconds=180 -> 6 kredi (script'ten ~1 çıkardı).
+    await db.execute(sql`UPDATE credit_ledger SET delta = 10 WHERE user_id = ${userId} AND kind = 'welcome_bonus'`);
+    const { credits } = await createVideoJob(db, redis, userId, {
+      ...INPUT,
+      script: "Short script.",
+      targetSeconds: 180,
+    });
+    expect(credits).toBe(6);
   });
   it("refunds and marks failed when enqueue fails", async () => {
     const brokenRedis = {
