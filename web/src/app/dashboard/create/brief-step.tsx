@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState } from "react";
+
 import { creditsForDuration } from "@/lib/credits/pricing";
 import { ASPECTS, DURATION_OPTIONS, LANGUAGES, VOICES } from "@/lib/jobs/options";
 
@@ -40,6 +42,43 @@ export function BriefStep({
   onGenerate: () => void;
   busy: boolean;
 }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Hangi ses için önizleme durumu: null | { id, state }
+  const [preview, setPreview] = useState<{ id: string; state: "loading" | "playing" | "error" } | null>(null);
+
+  async function playPreview(voiceId: string) {
+    // Çalan varsa durdur.
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setPreview({ id: voiceId, state: "loading" });
+    try {
+      const res = await fetch("/api/voice/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voiceName: voiceId }),
+      });
+      if (!res.ok) throw new Error(`preview ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setPreview((p) => (p?.id === voiceId ? null : p));
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        setPreview({ id: voiceId, state: "error" });
+      };
+      await audio.play();
+      setPreview({ id: voiceId, state: "playing" });
+    } catch {
+      setPreview({ id: voiceId, state: "error" });
+    }
+  }
+
   const voices = VOICES.filter((v) => v.language === values.language);
   const canGenerate = values.subject.trim().length > 0 && !busy;
   const lengthLabel =
@@ -93,33 +132,24 @@ export function BriefStep({
         <label className="mb-[11px] mt-[22px] block text-sm font-semibold text-bone">
           Language
         </label>
-        <div className="flex flex-wrap gap-[9px]">
-          {LANGUAGES.map((lang) => {
-            const on = values.language === lang.code;
-            return (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => {
-                  const firstVoice = VOICES.find(
-                    (v) => v.language === lang.code,
-                  );
-                  onChange({
-                    language: lang.code,
-                    ...(firstVoice ? { voice: firstVoice.id } : {}),
-                  });
-                }}
-                className={`rounded-full border px-4 py-[9px] text-sm font-semibold transition-colors ${
-                  on
-                    ? "border-caption bg-caption/10 text-bone"
-                    : "border-white/10 text-muted hover:text-bone"
-                }`}
-              >
-                {lang.label}
-              </button>
-            );
-          })}
-        </div>
+        <select
+          value={values.language}
+          onChange={(e) => {
+            const code = e.target.value;
+            const firstVoice = VOICES.find((v) => v.language === code);
+            onChange({
+              language: code,
+              ...(firstVoice ? { voice: firstVoice.id } : {}),
+            });
+          }}
+          className="w-full rounded-xl border border-white/10 bg-[#0E0C08] px-[15px] py-3.5 text-[15px] text-bone outline-none focus:border-caption/50"
+        >
+          {LANGUAGES.map((lang) => (
+            <option key={lang.code} value={lang.code} className="bg-[#0E0C08]">
+              {lang.label}
+            </option>
+          ))}
+        </select>
 
         <label className="mb-[11px] mt-[22px] block text-sm font-semibold text-bone">
           Voice
@@ -141,11 +171,40 @@ export function BriefStep({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-bone">{d.name}</span>
-                  <span
-                    className={`h-3.5 w-3.5 rounded-full border-2 ${
-                      on ? "border-caption bg-caption" : "border-white/20"
-                    }`}
-                  />
+                  <div className="flex items-center gap-2">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Play ${d.name} sample`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void playPreview(v.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void playPreview(v.id);
+                        }
+                      }}
+                      className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] transition-colors ${
+                        preview?.id === v.id && preview.state === "error"
+                          ? "border-red-500/60 text-red-400"
+                          : "border-white/20 text-muted hover:border-caption hover:text-caption"
+                      }`}
+                    >
+                      {preview?.id === v.id && preview.state === "loading"
+                        ? "…"
+                        : preview?.id === v.id && preview.state === "playing"
+                          ? "⏸"
+                          : "▶"}
+                    </span>
+                    <span
+                      className={`h-3.5 w-3.5 rounded-full border-2 ${
+                        on ? "border-caption bg-caption" : "border-white/20"
+                      }`}
+                    />
+                  </div>
                 </div>
                 <span className="font-mono-data text-[10.5px] text-muted/80">
                   {d.meta}
