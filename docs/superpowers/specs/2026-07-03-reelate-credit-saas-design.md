@@ -150,12 +150,33 @@ Hoş geldin bonusu: 2 kredi. Fiyat/kademe değerleri config tablosunda.
 
 ## 11. Faz Planı
 
-1. **Faz 1 — Motor:** render optimizasyonu (720p, veryfast, paralel indirme,
-   klip önbelleği), worker'laştırma, SLO ölçümü (varsayım doğrulama)
-2. **Faz 2 — SaaS çekirdeği:** Next.js + auth + kredi defteri + Stripe + sihirbaz
-   + kütüphane + SSE ilerleme
-3. **Faz 3 — Ölçek:** autoscaler + snapshot + kuyruk ETA + e-posta bildirimleri
-4. **Faz 4 — Lansman:** landing + programatik SEO sayfaları + polish + kapalı beta
+*(2026-07-03 revizyonu: Faz 3 ile Faz 4'ün yeri değişti; tam autoscaler
+lansman sonrasına alındı, yerine "3-lite" Faz 4a'ya gömüldü. Gerekçe: gelir
+üretimi deploy'a bağlı; mevcut kapasite — 2 worker, ~40-60 video/saat —
+kapalı beta için yeterli; yığılma riski snapshot + kuyruk uyarısı + elle
+ölçekleme ile karşılanıyor.)*
+
+1. **Faz 1 — Motor** ✅: render optimizasyonu (720p, veryfast, paralel
+   indirme, klip önbelleği), worker'laştırma, SLO ölçümü
+2. **Faz 2 — SaaS çekirdeği** ✅ (2a auth+kredi, 2b Stripe, 2c sihirbaz+akış)
+3. **Faz 4a — Deploy + 3-lite:** üretim deploy'u (aşağıdaki not) + worker
+   bootstrap artefaktı (elle ölçekleme 2 dk) + kuyruk derinliği uyarısı +
+   kuyruk ETA göstergesi
+4. **Faz 4b — Tasarım + landing:** görsel kimlik, landing, programatik SEO
+   sayfaları
+5. **Faz 4c — Lansman cilası:** e-posta girişi (magic link), Stripe canlı
+   doğrulama, go-live kontrol listesi, kapalı beta
+6. **Lansman sonrası ilk iş — tam autoscaler:** kuyruk derinliğine göre
+   Hetzner API ile otomatik worker makinesi aç/kapat (Bölüm 3'teki tasarım)
+
+**Deploy gerçeği (Bölüm 2 revizyonu):** Hedef makine (CPX42) Reelate'e
+adanmış DEĞİL — üzerinde falportal/durudroid/ilkimsuderin üretimde ve
+80/443'ü Traefik (docker network `web`, Cloudflare Origin sertifikaları)
+yönetiyor. Reelate stack'i kendi Compose dosyasıyla, kendi postgres/redis
+konteynerleriyle, Traefik'e label ile katılır. Render worker'ları
+**CPU-limitli** (`cpus: 3` + düşük öncelik) çalışır ki mevcut siteler
+etkilenmesin; kuyruk sıkışırsa worker'lar ayrı makineye taşınır (bootstrap
+artefaktı hazır olacak).
 
 Her faz kendi implementasyon planını alır (writing-plans); bu spec üst
 çerçevedir. Faz 1 sonunda ölçülen render süreleri Bölüm 3'teki varsayımları
