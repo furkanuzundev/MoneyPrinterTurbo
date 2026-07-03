@@ -17,7 +17,11 @@ export default async function BuyPage() {
           return (
             <Card
               key={pkg.key}
-              className={pkg.featured ? "relative ring-2 ring-primary" : "relative border-0"}
+              className={
+                pkg.featured
+                  ? "relative px-6 ring-2 ring-primary"
+                  : "relative border-0 px-6"
+              }
             >
               {pkg.featured && (
                 <Badge className="absolute -top-3 left-6">
