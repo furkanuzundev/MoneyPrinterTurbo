@@ -3,7 +3,7 @@ import type Redis from "ioredis";
 import type { Db } from "@/db";
 import { videoJobs } from "@/db/schema";
 import { refundJob } from "@/lib/credits/ledger";
-import { ENGINE_COMPLETE, ENGINE_FAILED, readEngineState } from "./queue";
+import { enqueueSentinelKey, ENGINE_COMPLETE, ENGINE_FAILED, readEngineState } from "./queue";
 
 export type VideoJobRow = typeof videoJobs.$inferSelect;
 
@@ -34,7 +34,9 @@ export async function syncJobStatus(
       job.status === "queued" &&
       Date.now() - job.createdAt.getTime() > STUCK_QUEUED_THRESHOLD_MS;
     if (!isStuck) return { job, progress: 0 };
-    // Harcama commit'lendi ama iş kuyruğa hiç ulaşmadı (crash penceresi):
+    const wasEnqueued = await redis.exists(enqueueSentinelKey(jobId));
+    if (wasEnqueued) return { job, progress: 0 }; // kuyrukta bekliyor: DOKUNMA
+    // Sentinel yok: harcama commit'lendi ama enqueue hiç gerçekleşmedi.
     // önce iade, sonra terminal işaret (yerleşik sıralama dersi).
     await refundJob(db, jobId);
     const [updated] = await db

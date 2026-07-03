@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 import { getBalance, grantWelcomeBonus, spendCreditsForJob } from "@/lib/credits/ledger";
+import { enqueueJob } from "../queue";
 import { stageForProgress, syncJobStatus } from "../status";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL_TEST });
@@ -106,6 +107,24 @@ describe("syncJobStatus", () => {
     const result = await syncJobStatus(db, redis, jobId);
     expect(result!.job.status).toBe("queued");
     expect(await getBalance(db, userId)).toBe(1); // iade YOK
+  });
+
+  it("does not reconcile an old job that IS in the queue (backlog)", async () => {
+    await enqueueJob(redis, jobId, {
+      video_subject: "s",
+      video_script: "drink water",
+      video_terms: ["a"],
+      video_aspect: "9:16",
+      voice_name: "en-US-JennyNeural-Female",
+      subtitle_enabled: true,
+    });
+    await db
+      .update(schema.videoJobs)
+      .set({ createdAt: new Date(Date.now() - 16 * 60 * 1000) })
+      .where(eq(schema.videoJobs.id, jobId));
+    const result = await syncJobStatus(db, redis, jobId);
+    expect(result!.job.status).toBe("queued"); // iade YOK, iş kuyrukta
+    expect(await getBalance(db, userId)).toBe(1);
   });
 });
 

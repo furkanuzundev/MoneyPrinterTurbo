@@ -31,6 +31,7 @@ describe("enqueueJob", () => {
       params: PARAMS,
       attempts: 0,
     });
+    expect(await redis.exists("reelate:queue:seen:job-1")).toBe(1);
   });
 });
 

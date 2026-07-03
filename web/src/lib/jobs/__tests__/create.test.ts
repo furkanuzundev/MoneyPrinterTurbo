@@ -82,7 +82,13 @@ describe("createVideoJob", () => {
   });
   it("refunds and marks failed when enqueue fails", async () => {
     const brokenRedis = {
-      lpush: () => Promise.reject(new Error("redis down")),
+      multi: () => ({
+        lpush: () => ({
+          set: () => ({
+            exec: () => Promise.reject(new Error("redis down")),
+          }),
+        }),
+      }),
     } as unknown as Redis;
     await expect(
       createVideoJob(db, brokenRedis, userId, INPUT),
@@ -97,7 +103,13 @@ describe("createVideoJob", () => {
       .spyOn(ledger, "refundJob")
       .mockRejectedValueOnce(new Error("transient refund error"));
     const brokenRedis = {
-      lpush: () => Promise.reject(new Error("redis down")),
+      multi: () => ({
+        lpush: () => ({
+          set: () => ({
+            exec: () => Promise.reject(new Error("redis down")),
+          }),
+        }),
+      }),
     } as unknown as Redis;
     await expect(
       createVideoJob(db, brokenRedis, userId, INPUT),

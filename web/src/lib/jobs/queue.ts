@@ -27,15 +27,23 @@ export type EngineParams = {
   subtitle_enabled: boolean;
 };
 
+export function enqueueSentinelKey(jobId: string): string {
+  return `reelate:queue:seen:${jobId}`;
+}
+
 export async function enqueueJob(
   redis: Redis,
   jobId: string,
   params: EngineParams,
 ): Promise<void> {
-  await redis.lpush(
-    PENDING_KEY,
-    JSON.stringify({ task_id: jobId, params, attempts: 0 }),
-  );
+  // Sentinel, push ile ATOMİK yazılır (MULTI): "kuyruğa hiç ulaşmadı" ile
+  // "kuyrukta bekliyor" durumları birbirinden kesin ayrılır; reconciliation
+  // yalnızca sentinel YOKSA iade eder.
+  await redis
+    .multi()
+    .lpush(PENDING_KEY, JSON.stringify({ task_id: jobId, params, attempts: 0 }))
+    .set(enqueueSentinelKey(jobId), "1", "EX", 7 * 24 * 3600)
+    .exec();
 }
 
 export async function readEngineState(
