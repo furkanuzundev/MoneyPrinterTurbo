@@ -13,12 +13,21 @@ export async function POST(request: Request) {
   const redis = getRedis();
   const hour = Math.floor(Date.now() / 3_600_000);
   const rateKey = `reelate:ratelimit:script:${userId}:${hour}`;
-  const count = await redis.incr(rateKey);
-  if (count === 1) await redis.expire(rateKey, 3600);
-  if (count > HOURLY_LIMIT) {
+  try {
+    const count = await redis.incr(rateKey);
+    if (count === 1) await redis.expire(rateKey, 3600);
+    if (count > HOURLY_LIMIT) {
+      return NextResponse.json(
+        { error: "Too many script requests. Please try again later." },
+        { status: 429 },
+      );
+    }
+  } catch (e) {
+    // Redis yoksa limit doğrulanamaz: fail-closed (maliyet sızdırma yerine 503).
+    console.error("script rate limiter unavailable", e);
     return NextResponse.json(
-      { error: "Too many script requests. Please try again later." },
-      { status: 429 },
+      { error: "Script generation is temporarily unavailable" },
+      { status: 503 },
     );
   }
 
