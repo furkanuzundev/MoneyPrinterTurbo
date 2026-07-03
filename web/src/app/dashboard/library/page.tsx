@@ -6,7 +6,9 @@ import { db } from "@/db";
 import { videoJobs } from "@/db/schema";
 import { getRedis } from "@/lib/jobs/queue";
 import { syncJobStatus } from "@/lib/jobs/status";
-import { JobRow } from "@/components/job-row";
+import { toVideoCardData } from "@/lib/jobs/display";
+import { LibraryView } from "@/components/dashboard/library-view";
+import { EmptyState } from "@/components/dashboard/empty-state";
 
 export default async function LibraryPage() {
   const session = await auth();
@@ -29,44 +31,35 @@ export default async function LibraryPage() {
     ),
   );
 
+  const readyCount = refreshed.filter((j) => j.status === "done").length;
+
   return (
     <div>
-      <h1 className="mb-6 font-display text-2xl font-bold tracking-[-0.02em] text-bone">
-        Library
-      </h1>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="mb-1.5 font-display text-3xl font-extrabold tracking-[-0.02em] text-bone lg:text-[34px]">
+            Library
+          </h1>
+          <p className="text-[15px] text-muted">
+            {refreshed.length} videos &middot; {readyCount} ready to post
+          </p>
+        </div>
+        <Link
+          href="/dashboard/create"
+          className="whitespace-nowrap rounded-[11px] bg-caption px-[18px] py-[11px] text-center text-sm font-bold text-caption-ink transition-opacity hover:opacity-90"
+        >
+          ＋ Create a video
+        </Link>
+      </div>
+
       {refreshed.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-xl bg-panel px-6 py-16 text-center">
-          <svg width="64" height="114" viewBox="0 0 64 114" fill="none" aria-hidden="true">
-            <rect
-              x="1.5"
-              y="1.5"
-              width="61"
-              height="111"
-              rx="10"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="text-line"
-            />
-          </svg>
-          <div>
-            <p className="font-display font-bold text-bone">No videos yet</p>
-            <p className="mt-1 text-sm text-muted">
-              Your generated videos will show up here.
-            </p>
-          </div>
-          <Link
-            href="/dashboard/create"
-            className="text-sm text-bone underline hover:text-caption"
-          >
-            Create your first video
-          </Link>
-        </div>
+        <EmptyState
+          title="No videos yet"
+          message="Type a topic and Reelate writes, voices and captions a ready-to-post video in about five minutes."
+          cta="＋ Create a video"
+        />
       ) : (
-        <div className="max-w-3xl space-y-3">
-          {refreshed.map((job) => (
-            <JobRow key={job.id} job={job} />
-          ))}
-        </div>
+        <LibraryView videos={refreshed.map(toVideoCardData)} />
       )}
     </div>
   );

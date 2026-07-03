@@ -1,16 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 
-export function BuyButton({ packageKey }: { packageKey: string }) {
+export function BuyButton({
+  packageKey,
+  label,
+  featured,
+}: {
+  packageKey: string;
+  label: string;
+  featured: boolean;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   return (
     <>
-      <Button
+      <button
+        type="button"
         disabled={loading}
-        className="mt-6 w-full"
+        className={`mt-6 w-full rounded-xl text-center text-[14.5px] font-bold transition-opacity disabled:opacity-60 ${
+          featured
+            ? "bg-caption p-3.5 text-caption-ink hover:opacity-90"
+            : "border border-white/15 p-[13px] text-bone hover:border-white/30"
+        }`}
         onClick={async () => {
           setLoading(true);
           setError(null);
@@ -33,8 +46,8 @@ export function BuyButton({ packageKey }: { packageKey: string }) {
           }
         }}
       >
-        {loading ? "Redirecting…" : "Buy"}
-      </Button>
+        {loading ? "Redirecting…" : `Buy ${label}`}
+      </button>
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </>
   );

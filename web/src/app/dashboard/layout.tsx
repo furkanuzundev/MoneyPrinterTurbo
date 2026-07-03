@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { auth, signOut } from "@/auth";
 import { db } from "@/db";
-import { getBalance } from "@/lib/credits/ledger";
+import { getBalance, grantWelcomeBonus } from "@/lib/credits/ledger";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { DashboardTopbar } from "@/components/dashboard/topbar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default async function DashboardLayout({
   children,
@@ -13,12 +14,14 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/signin");
+  await grantWelcomeBonus(db, session.user.id); // idempotent
   const balance = await getBalance(db, session.user.id);
 
   return (
     <SidebarProvider>
       <AppSidebar
         balance={balance}
+        name={session.user.name ?? ""}
         email={session.user.email ?? ""}
         signOutForm={
           <form
@@ -29,22 +32,19 @@ export default async function DashboardLayout({
           >
             <button
               type="submit"
-              className="w-full rounded-md border border-sidebar-border px-3 py-1.5 text-left text-xs text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              title="Sign out"
+              className="flex items-center p-1 text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
             >
-              Sign out
+              <LogOut size={16} />
             </button>
           </form>
         }
       />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-4">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4" />
-          <span className="font-display text-sm font-semibold tracking-[-0.02em] text-bone">
-            Reelate
-          </span>
-        </header>
-        <div className="mx-auto w-full max-w-5xl px-6 py-8">{children}</div>
+        <DashboardTopbar balance={balance} />
+        <div className="mx-auto w-full max-w-[1120px] px-5 py-8 lg:px-10 lg:py-10">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
