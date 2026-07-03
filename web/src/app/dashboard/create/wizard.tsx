@@ -163,6 +163,7 @@ export function Wizard({ balance }: { balance: number }) {
           duration={`~${formatDuration(estimateDurationSeconds(script))}`}
           initialStatus="queued"
           creditsLeft={Math.max(0, balance - credits)}
+          captionsHref={`/dashboard/videos/${jobId}/captions`}
           onDone={() => setJobDone(true)}
         />
       )}

@@ -52,6 +52,23 @@ export async function enqueueJob(
     .exec();
 }
 
+export async function enqueueRerender(
+  redis: Redis,
+  jobId: string,
+  params: EngineParams,
+): Promise<void> {
+  // Eski engine hash'i atomik temizlenir: sync, önceki render'ın COMPLETE
+  // durumunu görüp işi anında done'a çevirmesin.
+  await redis
+    .multi()
+    .del(jobId)
+    .lpush(
+      PENDING_KEY,
+      JSON.stringify({ task_id: jobId, type: "rerender", params, attempts: 0 }),
+    )
+    .exec();
+}
+
 export async function readEngineState(
   redis: Redis,
   jobId: string,

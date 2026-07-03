@@ -270,6 +270,70 @@ def generate_scene_subtitle(task_id, params, audio_duration):
     return subtitle_path
 
 
+def rerender(task_id, params: VideoParams):
+    """
+    Altyazı-yalnız yeniden render (Reelate caption editörü): mevcut
+    combined-1.mp4 + audio.mp3 yeniden kullanılır, SRT sahnelerden yeniden
+    üretilir ve sadece altyazı yakma adımı koşulur.
+
+    Güvenlik: çıktı önce geçici dosyaya yazılır, başarıda final-1.mp4'ün
+    üzerine atomik taşınır. HERHANGİ bir hata durumunda iş COMPLETE'e geri
+    döndürülür (eski video geçerli kalır) — FAILED yazılmaz, çünkü web
+    tarafındaki sync FAILED görünce orijinal harcamayı iade eder.
+    """
+    logger.info(f"rerender task: {task_id}")
+    sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=10)
+
+    t_dir = utils.task_dir(task_id)
+    combined_path = path.join(t_dir, "combined-1.mp4")
+    audio_file = path.join(t_dir, "audio.mp3")
+    final_path = path.join(t_dir, "final-1.mp4")
+
+    def _restore_complete():
+        sm.state.update_task(
+            task_id, state=const.TASK_STATE_COMPLETE, progress=100
+        )
+
+    if not (path.exists(combined_path) and path.exists(audio_file)):
+        logger.error(f"rerender sources missing for {task_id}, keeping old video")
+        _restore_complete()
+        return {"videos": [final_path]}
+
+    try:
+        audio_duration = voice.get_audio_duration(audio_file)
+        sm.state.update_task(
+            task_id, state=const.TASK_STATE_PROCESSING, progress=40
+        )
+        subtitle_path = generate_scene_subtitle(task_id, params, audio_duration)
+        sm.state.update_task(
+            task_id, state=const.TASK_STATE_PROCESSING, progress=60
+        )
+        tmp_path = path.join(t_dir, "final-1.rerender.mp4")
+        video.generate_video(
+            video_path=combined_path,
+            audio_path=audio_file,
+            subtitle_path=subtitle_path,
+            output_file=tmp_path,
+            params=params,
+        )
+        if not path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
+            raise RuntimeError("rerender produced no output")
+        os.replace(tmp_path, final_path)
+    except Exception as e:
+        logger.error(f"rerender failed for {task_id}: {str(e)}, keeping old video")
+        _restore_complete()
+        return {"videos": [final_path]}
+
+    sm.state.update_task(
+        task_id,
+        state=const.TASK_STATE_COMPLETE,
+        progress=100,
+        videos=[final_path],
+    )
+    logger.success(f"rerender completed: {final_path}")
+    return {"videos": [final_path]}
+
+
 def get_video_materials(task_id, params, video_terms, audio_duration):
     if params.video_source == "local":
         logger.info("\n\n## preprocess local materials")

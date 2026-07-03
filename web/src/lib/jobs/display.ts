@@ -33,5 +33,6 @@ export function toVideoCardData(job: VideoJobRow): VideoCardData {
     aspect: job.aspect,
     duration: formatDuration(job.targetSeconds),
     when: relativeTime(job.createdAt),
+    hasScenes: (job.scenes?.length ?? 0) > 0,
   };
 }

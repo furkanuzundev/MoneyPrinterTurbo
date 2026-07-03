@@ -11,6 +11,7 @@ export type VideoCardData = {
   aspect: string;
   duration: string; // "0:42"
   when: string; // "2h ago"
+  hasScenes: boolean; // caption editörü yalnız sahneli işlerde
 };
 
 const BADGES: Record<VideoCardData["status"], { label: string; cls: string }> =

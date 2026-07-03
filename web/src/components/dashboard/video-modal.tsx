@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { VideoCardData } from "./video-grid";
@@ -105,12 +106,21 @@ export function VideoModal({
             >
               ↓ Download MP4
             </a>
-            <span
-              title="Caption editing is coming soon"
-              className="cursor-not-allowed rounded-[11px] border border-white/10 px-4 py-3 text-center text-sm font-semibold text-muted/50"
-            >
-              ✎ Captions
-            </span>
+            {video.hasScenes ? (
+              <Link
+                href={`/dashboard/videos/${video.id}/captions`}
+                className="rounded-[11px] border border-white/15 px-4 py-3 text-center text-sm font-semibold text-bone transition-colors hover:border-white/30"
+              >
+                ✎ Captions
+              </Link>
+            ) : (
+              <span
+                title="Caption editing is only available for scene-based videos"
+                className="cursor-not-allowed rounded-[11px] border border-white/10 px-4 py-3 text-center text-sm font-semibold text-muted/50"
+              >
+                ✎ Captions
+              </span>
+            )}
           </div>
           <div className="mb-2 mt-4 font-mono-data text-[10.5px] uppercase text-muted/70">
             Post to

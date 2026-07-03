@@ -46,9 +46,24 @@ def process_job(r, worker_id: str, job: dict, raw: str) -> bool:
         sm.state.update_task(task_id, state=const.TASK_STATE_FAILED)
         queue.complete(r, worker_id, raw)
         return False
+    job_type = job.get("type", "render")
     try:
-        result = tm.start(task_id, params)
+        if job_type == "rerender":
+            # Altyazı-yalnız yeniden render: task.rerender hatada işi COMPLETE'e
+            # geri döndürür (eski video kalır); retry/requeue gerekmez.
+            result = tm.rerender(task_id, params)
+        else:
+            result = tm.start(task_id, params)
     except Exception as e:
+        if job_type == "rerender":
+            # Crash bile olsa rerender asla FAILED bırakmaz: web sync FAILED
+            # görürse orijinal harcamayı iade eder. Eski video geçerli kalsın.
+            logger.error(f"rerender {task_id} crashed: {str(e)}, restoring complete")
+            sm.state.update_task(
+                task_id, state=const.TASK_STATE_COMPLETE, progress=100
+            )
+            queue.complete(r, worker_id, raw)
+            return False
         # Beklenmeyen crash (infra): retry hakkı var.
         logger.error(f"task {task_id} crashed: {str(e)}")
         # Önce işin bir sonraki durumu var edilir (retry kuyruğu veya kalıcı failed),

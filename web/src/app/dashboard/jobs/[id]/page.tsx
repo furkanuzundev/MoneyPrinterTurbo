@@ -40,6 +40,11 @@ export default async function JobPage({
         duration={formatDuration(job.targetSeconds)}
         initialStatus={job.status}
         creditsLeft={balance}
+        captionsHref={
+          job.scenes && job.scenes.length > 0
+            ? `/dashboard/videos/${job.id}/captions`
+            : null
+        }
       />
     </div>
   );
