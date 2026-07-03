@@ -1,31 +1,8 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { getPackages } from "@/lib/credits/packages";
-import { Card, CaptionChip, MonoStat, buttonClasses } from "@/components/ui";
+import { Card, CaptionChip, buttonClasses } from "@/components/ui";
 import "./landing.css";
-
-const TIMELINE_STEPS = [
-  {
-    n: "01",
-    title: "Topic",
-    body: "You type one sentence.",
-  },
-  {
-    n: "02",
-    title: "Script",
-    body: "AI writes 30–180s of voiceover.",
-  },
-  {
-    n: "03",
-    title: "Footage",
-    body: "Stock clips matched to every line.",
-  },
-  {
-    n: "04",
-    title: "Post-ready",
-    body: "Captions burned in, MP4 download.",
-  },
-];
 
 export default async function Home() {
   const packages = await getPackages(db);
@@ -80,49 +57,6 @@ export default async function Home() {
 
         <div className="flex w-full justify-center lg:w-auto lg:flex-shrink-0">
           <HeroPreviewCard />
-        </div>
-      </section>
-
-      {/* Timeline strip */}
-      <section className="border-y border-line bg-panel/40 px-6 py-16">
-        <div className="mx-auto w-full max-w-6xl">
-          <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-bone sm:text-3xl">
-            From idea to posted in four cuts
-          </h2>
-          <div className="relative mt-10">
-            <div
-              className="pointer-events-none absolute left-0 right-0 top-5 hidden h-px bg-line sm:block"
-              aria-hidden="true"
-            />
-            <div
-              className="pointer-events-none absolute left-0 top-5 hidden h-2 w-2 -translate-y-1/2 rounded-full bg-caption shadow-[0_0_0_3px_rgba(255,216,77,0.25)] sm:block"
-              aria-hidden="true"
-            />
-            <ol className="relative grid grid-cols-1 gap-8 sm:grid-cols-4 sm:gap-6">
-              {TIMELINE_STEPS.map((step) => (
-                <li key={step.n} className="flex flex-col gap-3">
-                  <span className="font-mono-data text-sm text-caption">
-                    {step.n}
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-display text-lg font-bold text-bone">
-                      {step.title}
-                    </span>
-                    <span className="text-sm text-muted">{step.body}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </section>
-
-      {/* Proof bar */}
-      <section className="mx-auto w-full max-w-6xl px-6 py-14">
-        <div className="flex flex-wrap items-start justify-center gap-10 sm:justify-between">
-          <MonoStat label="typical render time" value="~5 min" />
-          <MonoStat label="output format" value="720p vertical" />
-          <MonoStat label="on signup" value="2 free credits" />
         </div>
       </section>
 
