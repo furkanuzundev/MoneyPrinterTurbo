@@ -20,7 +20,7 @@ export function Wizard({ balance }: { balance: number }) {
   const [step, setStep] = useState(1);
   const [brief, setBrief] = useState<BriefValues>({
     subject: "",
-    language: "en",
+    language: "en-US",
     voice: VOICES[0].id,
     aspect: "9:16",
     targetSeconds: 60,
