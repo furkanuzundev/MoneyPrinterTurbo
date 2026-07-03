@@ -14,7 +14,11 @@
    çalışmazsa (standalone imajda drizzle-kit yok): migration'ı host'tan çalıştır:
    `cd /opt/reelate/src/web && DATABASE_URL=postgres://reelate:...@localhost:5432/reelate npm run db:migrate`
    — ancak reelate-db portu host'a kapalı; bu yüzden tercih edilen yol:
-   `docker run --rm --network reelate_internal -v /opt/reelate/src/web:/w -w /w node:22-alpine sh -c "npm ci && DATABASE_URL=postgres://reelate:<pw>@reelate-db:5432/reelate npm run db:migrate"`
+   `docker run --rm --network reelate_internal -v /opt/reelate/src/web:/w -w /w node:22-alpine sh -c "npm install -g npm@11.6.2 && npm ci && DATABASE_URL=postgres://reelate:<pw>@reelate-db:5432/reelate npm run db:migrate"`
+   (npm pin gerekli: bare node:22-alpine'ın bundle npm'i (10.9.8) ve npm>=11.7.0,
+   lockfile'daki `@tailwindcss/oxide-wasm32-wasi` optional bundleDependencies'i
+   yanlış "Missing from lock file" hatasıyla reddediyor — aynı bug web.Dockerfile'da
+   npm@11.6.2 pin'iyle atlatılıyor, migration komutu da aynı pin'i kullanmalı.)
 7. Smoke: `curl -H 'Host: reelate.co' -k https://127.0.0.1/` → Reelate landing HTML
 
 ## DNS + TLS (operatör)
