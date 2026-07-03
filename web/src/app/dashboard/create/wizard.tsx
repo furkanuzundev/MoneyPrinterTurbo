@@ -12,7 +12,18 @@ import {
   LANGUAGES,
   VOICES,
 } from "@/lib/jobs/options";
-import { Card, CaptionChip, buttonClasses } from "@/components/ui";
+import { Card, CaptionChip } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function Wizard({ balance }: { balance: number }) {
   const router = useRouter();
@@ -83,102 +94,107 @@ export function Wizard({ balance }: { balance: number }) {
     }
   }
 
-  const inputClasses =
-    "w-full rounded-[8px] border border-line bg-ink px-3 py-2 text-bone placeholder:text-muted focus-visible:outline-none focus:border-caption";
-
   return (
     <div className="max-w-2xl space-y-6">
       <Card className="space-y-6 border-0">
         <div>
-          <label className="mb-1 block text-sm text-muted">Video subject</label>
-          <input
+          <Label className="mb-1 block text-sm text-muted">Video subject</Label>
+          <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="e.g. three morning habits that changed my life"
-            className={inputClasses}
           />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm text-muted">Length</label>
-            <select
-              value={targetSeconds}
-              onChange={(e) => setTargetSeconds(Number(e.target.value))}
-              className={inputClasses}
+            <Label className="mb-1 block text-sm text-muted">Length</Label>
+            <Select
+              value={String(targetSeconds)}
+              onValueChange={(value) => setTargetSeconds(Number(value))}
             >
-              {DURATION_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s >= 60 ? `${s / 60} min` : `${s} sec`} —{" "}
-                  {creditsForDuration(s)} cr
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DURATION_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={String(s)}>
+                    {s >= 60 ? `${s / 60} min` : `${s} sec`} —{" "}
+                    {creditsForDuration(s)} cr
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <label className="mb-1 block text-sm text-muted">Language</label>
-            <select
+            <Label className="mb-1 block text-sm text-muted">Language</Label>
+            <Select
               value={language}
-              onChange={(e) => {
-                setLanguage(e.target.value);
-                const first = VOICES.find((v) => v.language === e.target.value);
+              onValueChange={(value) => {
+                setLanguage(value);
+                const first = VOICES.find((v) => v.language === value);
                 if (first) setVoice(first.id);
               }}
-              className={inputClasses}
             >
-              {LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((l) => (
+                  <SelectItem key={l.code} value={l.code}>
+                    {l.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <label className="mb-1 block text-sm text-muted">Voice</label>
-            <select
-              value={voice}
-              onChange={(e) => setVoice(e.target.value)}
-              className={inputClasses}
-            >
-              {voices.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
+            <Label className="mb-1 block text-sm text-muted">Voice</Label>
+            <Select value={voice} onValueChange={(value) => setVoice(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {voices.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <label className="mb-1 block text-sm text-muted">Format</label>
-            <select
-              value={aspect}
-              onChange={(e) => setAspect(e.target.value)}
-              className={inputClasses}
-            >
-              {ASPECTS.map((a) => (
-                <option key={a} value={a}>
-                  {a === "9:16" ? "9:16 (TikTok/Reels)" : a === "16:9" ? "16:9 (YouTube)" : "1:1 (Square)"}
-                </option>
-              ))}
-            </select>
+            <Label className="mb-1 block text-sm text-muted">Format</Label>
+            <Select value={aspect} onValueChange={(value) => setAspect(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ASPECTS.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {a === "9:16" ? "9:16 (TikTok/Reels)" : a === "16:9" ? "16:9 (YouTube)" : "1:1 (Square)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <button
+        <Button
           onClick={generateScript}
           disabled={!subject.trim() || busy !== null}
-          className={buttonClasses("ghost")}
+          variant="secondary"
         >
           {busy === "script" ? "Writing script…" : script ? "Regenerate script" : "Generate script with AI"}
-        </button>
+        </Button>
 
         {script && (
           <>
             <div>
-              <label className="mb-1 block text-sm text-muted">
+              <Label className="mb-1 block text-sm text-muted">
                 Stock footage search terms (comma separated)
-              </label>
-              <input
+              </Label>
+              <Input
                 value={terms}
                 onChange={(e) => setTerms(e.target.value)}
-                className={inputClasses}
               />
             </div>
 
@@ -189,20 +205,15 @@ export function Wizard({ balance }: { balance: number }) {
                 <CaptionChip>{credits} credits</CaptionChip>
               </div>
               {canAfford ? (
-                <button
-                  onClick={createJob}
-                  disabled={busy !== null}
-                  className={buttonClasses("primary", "px-6 py-2")}
-                >
+                <Button onClick={createJob} disabled={busy !== null} className="px-6 py-2">
                   {busy === "job" ? "Starting…" : `Generate video (${credits} cr)`}
-                </button>
+                </Button>
               ) : (
-                <a
-                  href="/dashboard/buy"
-                  className={buttonClasses("primary", "px-6 py-2")}
-                >
-                  Need {credits - balance} more credits — Buy
-                </a>
+                <Button asChild className="px-6 py-2">
+                  <a href="/dashboard/buy">
+                    Need {credits - balance} more credits — Buy
+                  </a>
+                </Button>
               )}
             </div>
           </>
@@ -211,19 +222,19 @@ export function Wizard({ balance }: { balance: number }) {
 
       {script && (
         <Card className="space-y-1 border-0">
-          <label className="mb-1 block text-sm text-muted">
+          <Label className="mb-1 block text-sm text-muted">
             Script (edit freely — price updates live)
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             value={script}
             onChange={(e) => setScript(e.target.value)}
             rows={12}
-            className="min-h-[240px] w-full rounded-[8px] border border-line bg-ink px-3 py-2 font-sans leading-relaxed text-bone focus-visible:outline-none focus:border-caption"
+            className="min-h-[240px] font-sans leading-relaxed"
           />
         </Card>
       )}
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
