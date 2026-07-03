@@ -1769,3 +1769,41 @@ if __name__ == "__main__":
         loop.run_until_complete(_do())
     finally:
         loop.close()
+
+
+_PREVIEW_SAMPLE_TEXTS = {
+    "tr": "Merhaba, bu benim sesimden bir örnektir.",
+    "en": "Hello, this is a sample of my voice.",
+    "es": "Hola, esta es una muestra de mi voz.",
+    "de": "Hallo, das ist eine Kostprobe meiner Stimme.",
+    "fr": "Bonjour, ceci est un échantillon de ma voix.",
+    "pt": "Olá, esta é uma amostra da minha voz.",
+    "it": "Ciao, questo è un campione della mia voce.",
+    "ru": "Здравствуйте, это образец моего голоса.",
+    "ar": "مرحبًا، هذه عينة من صوتي.",
+    "zh": "你好，这是我的声音示例。",
+    "ja": "こんにちは、これは私の声のサンプルです。",
+    "ko": "안녕하세요, 이것은 제 목소리 샘플입니다.",
+    "hi": "नमस्ते, यह मेरी आवाज़ का एक नमूना है।",
+    "nl": "Hallo, dit is een voorbeeld van mijn stem.",
+    "pl": "Cześć, to próbka mojego głosu.",
+    "sv": "Hej, det här är ett prov på min röst.",
+    "id": "Halo, ini adalah contoh suara saya.",
+    "vi": "Xin chào, đây là một mẫu giọng nói của tôi.",
+    "th": "สวัสดี นี่คือตัวอย่างเสียงของฉัน",
+    "uk": "Привіт, це зразок мого голосу.",
+    "ro": "Bună, aceasta este o mostră a vocii mele.",
+    "el": "Γεια σας, αυτό είναι ένα δείγμα της φωνής μου.",
+    "cs": "Ahoj, toto je ukázka mého hlasu.",
+    "he": "שלום, זוהי דוגמה של הקול שלי.",
+    "da": "Hej, dette er en prøve på min stemme.",
+    "fi": "Hei, tämä on näyte äänestäni.",
+    "nb": "Hei, dette er en prøve av stemmen min.",
+    "fa": "سلام، این نمونه‌ای از صدای من است.",
+}
+
+
+def sample_text_for_voice(voice_name: str) -> str:
+    """Ses adının dil kodundan (ilk segment) örnek cümle seçer; bilinmiyorsa İngilizce."""
+    lang = voice_name.split("-")[0].lower() if voice_name else "en"
+    return _PREVIEW_SAMPLE_TEXTS.get(lang, _PREVIEW_SAMPLE_TEXTS["en"])
