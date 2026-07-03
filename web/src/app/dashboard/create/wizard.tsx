@@ -12,6 +12,7 @@ import {
   LANGUAGES,
   VOICES,
 } from "@/lib/jobs/options";
+import { Card, CaptionChip, buttonClasses } from "@/components/ui";
 
 export function Wizard({ balance }: { balance: number }) {
   const router = useRouter();
@@ -85,21 +86,21 @@ export function Wizard({ balance }: { balance: number }) {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <label className="mb-1 block text-sm text-zinc-400">Video subject</label>
+        <label className="mb-1 block text-sm text-muted">Video subject</label>
         <input
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="e.g. three morning habits that changed my life"
-          className="w-full rounded-lg border border-zinc-800 bg-transparent px-3 py-2"
+          className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
         />
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
-          <label className="mb-1 block text-sm text-zinc-400">Length</label>
+          <label className="mb-1 block text-sm text-muted">Length</label>
           <select
             value={targetSeconds}
             onChange={(e) => setTargetSeconds(Number(e.target.value))}
-            className="w-full rounded-lg border border-zinc-800 bg-transparent px-3 py-2"
+            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
           >
             {DURATION_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -110,7 +111,7 @@ export function Wizard({ balance }: { balance: number }) {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm text-zinc-400">Language</label>
+          <label className="mb-1 block text-sm text-muted">Language</label>
           <select
             value={language}
             onChange={(e) => {
@@ -118,7 +119,7 @@ export function Wizard({ balance }: { balance: number }) {
               const first = VOICES.find((v) => v.language === e.target.value);
               if (first) setVoice(first.id);
             }}
-            className="w-full rounded-lg border border-zinc-800 bg-transparent px-3 py-2"
+            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
           >
             {LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
@@ -128,11 +129,11 @@ export function Wizard({ balance }: { balance: number }) {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm text-zinc-400">Voice</label>
+          <label className="mb-1 block text-sm text-muted">Voice</label>
           <select
             value={voice}
             onChange={(e) => setVoice(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-transparent px-3 py-2"
+            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
           >
             {voices.map((v) => (
               <option key={v.id} value={v.id}>
@@ -142,11 +143,11 @@ export function Wizard({ balance }: { balance: number }) {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm text-zinc-400">Format</label>
+          <label className="mb-1 block text-sm text-muted">Format</label>
           <select
             value={aspect}
             onChange={(e) => setAspect(e.target.value)}
-            className="w-full rounded-lg border border-zinc-800 bg-transparent px-3 py-2"
+            className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
           >
             {ASPECTS.map((a) => (
               <option key={a} value={a}>
@@ -159,59 +160,61 @@ export function Wizard({ balance }: { balance: number }) {
       <button
         onClick={generateScript}
         disabled={!subject.trim() || busy !== null}
-        className="rounded-lg border border-zinc-700 px-4 py-2 hover:border-zinc-500 disabled:opacity-50"
+        className={buttonClasses("ghost")}
       >
         {busy === "script" ? "Writing script…" : script ? "Regenerate script" : "Generate script with AI"}
       </button>
       {script && (
         <>
           <div>
-            <label className="mb-1 block text-sm text-zinc-400">
+            <label className="mb-1 block text-sm text-muted">
               Script (edit freely — price updates live)
             </label>
             <textarea
               value={script}
               onChange={(e) => setScript(e.target.value)}
               rows={8}
-              className="w-full rounded-lg border border-zinc-800 bg-transparent px-3 py-2"
+              className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-zinc-400">
+            <label className="mb-1 block text-sm text-muted">
               Stock footage search terms (comma separated)
             </label>
             <input
               value={terms}
               onChange={(e) => setTerms(e.target.value)}
-              className="w-full rounded-lg border border-zinc-800 bg-transparent px-3 py-2"
+              className="w-full rounded-lg border border-line bg-transparent px-3 py-2 text-bone focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption"
             />
           </div>
-          <div className="rounded-xl border border-zinc-800 p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-zinc-400">
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="text-sm text-muted">
                 Estimated length ~{Math.floor(estimate / 60)}:
                 {String(estimate % 60).padStart(2, "0")} · Cost:{" "}
-                <span className="font-semibold text-white">{credits} credits</span>{" "}
-                · Balance: {balance}
+                <CaptionChip>
+                  <span className="font-mono-data">{credits}</span> credits
+                </CaptionChip>{" "}
+                · Balance: <span className="font-mono-data">{balance}</span>
               </div>
               {canAfford ? (
                 <button
                   onClick={createJob}
                   disabled={busy !== null}
-                  className="rounded-lg bg-white px-6 py-2 font-medium text-black hover:bg-zinc-200 disabled:opacity-50"
+                  className={buttonClasses("primary", "px-6 py-2")}
                 >
                   {busy === "job" ? "Starting…" : `Generate video (${credits} cr)`}
                 </button>
               ) : (
                 <a
                   href="/dashboard/buy"
-                  className="rounded-lg bg-white px-6 py-2 font-medium text-black hover:bg-zinc-200"
+                  className={buttonClasses("primary", "px-6 py-2")}
                 >
                   Need {credits - balance} more credits — Buy
                 </a>
               )}
             </div>
-          </div>
+          </Card>
         </>
       )}
       {error && <p className="text-sm text-red-400">{error}</p>}

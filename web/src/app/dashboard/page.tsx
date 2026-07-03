@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { getBalance, grantWelcomeBonus } from "@/lib/credits/ledger";
+import { Card, MonoStat, buttonClasses } from "@/components/ui";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -11,19 +12,20 @@ export default async function DashboardPage() {
   const balance = await getBalance(db, userId);
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold">Dashboard</h1>
+      <h1 className="mb-4 font-display text-2xl font-bold tracking-[-0.02em] text-bone">
+        Dashboard
+      </h1>
       <a
         href="/dashboard/create"
-        className="mb-6 inline-block rounded-lg bg-white px-6 py-2 font-medium text-black hover:bg-zinc-200"
+        className={buttonClasses("primary", "mb-6 inline-block")}
       >
         Create a video
       </a>
-      <div className="inline-block rounded-xl border border-zinc-800 px-6 py-4">
-        <div className="text-sm text-zinc-400">Credits</div>
-        <div className="text-3xl font-bold">{balance}</div>
-      </div>
+      <Card className="inline-block px-6 py-4">
+        <MonoStat label="Credits" value={balance} />
+      </Card>
       <div className="mt-4">
-        <a href="/dashboard/buy" className="text-sm underline">
+        <a href="/dashboard/buy" className="text-sm text-muted underline hover:text-bone">
           Buy credits
         </a>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClasses } from "@/components/ui";
 
 export function BuyButton({ packageKey }: { packageKey: string }) {
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ export function BuyButton({ packageKey }: { packageKey: string }) {
             setLoading(false);
           }
         }}
-        className="w-full rounded-lg bg-white px-4 py-2 font-medium text-black hover:bg-zinc-200 disabled:opacity-50"
+        className={buttonClasses("primary", "mt-6 w-full")}
       >
         {loading ? "Redirecting…" : "Buy"}
       </button>

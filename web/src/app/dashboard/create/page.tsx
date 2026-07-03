@@ -11,7 +11,9 @@ export default async function CreatePage() {
   const balance = await getBalance(db, userId);
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold">Create a video</h1>
+      <h1 className="mb-6 font-display text-2xl font-bold tracking-[-0.02em] text-bone">
+        Create a video
+      </h1>
       <Wizard balance={balance} />
     </div>
   );

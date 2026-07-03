@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Card, buttonClasses } from "@/components/ui";
 
 type JobEvent = {
   status: string;
@@ -33,12 +34,12 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
 
   if (event.status === "failed") {
     return (
-      <div className="rounded-xl border border-red-900 p-6">
+      <Card className="border-red-900">
         <p className="font-medium text-red-400">Generation failed</p>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-muted">
           {event.error ?? "Something went wrong. Your credits have been refunded."}
         </p>
-      </div>
+      </Card>
     );
   }
   if (event.status === "done") {
@@ -47,11 +48,11 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
         <video
           src={`/api/videos/${jobId}`}
           controls
-          className="max-h-[70vh] rounded-xl border border-zinc-800"
+          className="max-h-[70vh] rounded-xl border border-line"
         />
         <a
           href={`/api/videos/${jobId}?download=1`}
-          className="inline-block rounded-lg bg-white px-6 py-2 font-medium text-black hover:bg-zinc-200"
+          className={buttonClasses("primary", "inline-block")}
         >
           Download video
         </a>
@@ -59,22 +60,23 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
     );
   }
   return (
-    <div className="max-w-md rounded-xl border border-zinc-800 p-6">
+    <Card className="max-w-md">
       {event.status === "queued" && event.etaSeconds != null && (
-        <p className="mb-2 text-sm text-zinc-400">
+        <p className="mb-2 text-sm text-muted">
           Waiting in queue — about {Math.max(1, Math.round(event.etaSeconds / 60))} min
         </p>
       )}
-      <p className="mb-3 font-medium">{event.stage}…</p>
-      <div className="h-2 w-full overflow-hidden rounded bg-zinc-800">
+      <p className="mb-3 font-display font-bold text-bone">{event.stage}…</p>
+      <div className="h-2 w-full overflow-hidden rounded bg-line">
         <div
-          className="h-full bg-white transition-all"
+          className="h-full bg-caption transition-all"
           style={{ width: `${Math.max(3, event.progress)}%` }}
         />
       </div>
-      <p className="mt-2 text-sm text-zinc-400">
-        {event.progress}% — you can close this page; the video keeps rendering.
+      <p className="mt-2 text-sm text-muted">
+        <span className="font-mono-data">{event.progress}%</span> — you can
+        close this page; the video keeps rendering.
       </p>
-    </div>
+    </Card>
   );
 }

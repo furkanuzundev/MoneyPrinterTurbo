@@ -18,9 +18,12 @@ export default async function JobPage({
   if (!job || job.userId !== userId) notFound();
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-semibold">{job.subject}</h1>
-      <p className="mb-6 text-sm text-zinc-400">
-        {job.targetSeconds}s · {job.aspect} · {job.credits} credits
+      <h1 className="mb-1 font-display text-2xl font-bold tracking-[-0.02em] text-bone">
+        {job.subject}
+      </h1>
+      <p className="mb-6 text-sm text-muted">
+        {job.targetSeconds}s · {job.aspect} ·{" "}
+        <span className="font-mono-data">{job.credits}</span> credits
       </p>
       <JobProgress jobId={job.id} initialStatus={job.status} />
     </div>
