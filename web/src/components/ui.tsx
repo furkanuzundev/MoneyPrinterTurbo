@@ -8,14 +8,23 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "ghost";
 }
 
+const BUTTON_BASE =
+  "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption disabled:opacity-50 disabled:pointer-events-none";
+const BUTTON_VARIANTS = {
+  primary: "bg-caption text-ink hover:brightness-110",
+  ghost: "border border-line text-bone hover:bg-panel",
+} as const;
+
+/** Shared class string so non-<button> elements (e.g. next/link) can match Button's look. */
+export function buttonClasses(
+  variant: keyof typeof BUTTON_VARIANTS = "primary",
+  className?: string,
+) {
+  return cx(BUTTON_BASE, BUTTON_VARIANTS[variant], className);
+}
+
 export function Button({ variant = "primary", className, ...props }: ButtonProps) {
-  const base =
-    "inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caption disabled:opacity-50 disabled:pointer-events-none";
-  const variants = {
-    primary: "bg-caption text-ink hover:brightness-110",
-    ghost: "border border-line text-bone hover:bg-panel",
-  };
-  return <button className={cx(base, variants[variant], className)} {...props} />;
+  return <button className={buttonClasses(variant, className)} {...props} />;
 }
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
