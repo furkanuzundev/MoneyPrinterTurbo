@@ -59,9 +59,33 @@ describe("handleStripeEvent", () => {
     await handleStripeEvent(db, ev);
     expect(await getBalance(db, userId)).toBe(0);
   });
-  it("throws on missing metadata (surfaces misconfigured session)", async () => {
+  it("does not throw or credit on missing metadata (poison event)", async () => {
     const ev = completedEvent("cs_4");
     (ev.data.object as Stripe.Checkout.Session).metadata = {};
-    await expect(handleStripeEvent(db, ev)).rejects.toThrow();
+    await expect(handleStripeEvent(db, ev)).resolves.toBeUndefined();
+    expect(await getBalance(db, userId)).toBe(0);
+  });
+
+  it("does not throw or credit for a nonexistent user (poison event)", async () => {
+    const ev = completedEvent("cs_5");
+    (ev.data.object as Stripe.Checkout.Session).metadata = {
+      userId: "00000000-0000-0000-0000-000000000000",
+      packageKey: "creator",
+      credits: "50",
+    };
+    await expect(handleStripeEvent(db, ev)).resolves.toBeUndefined();
+    const purchases = await db.select().from(schema.purchases);
+    expect(purchases).toHaveLength(0);
+  });
+
+  it("does not credit on malformed credits metadata", async () => {
+    const ev = completedEvent("cs_6");
+    (ev.data.object as Stripe.Checkout.Session).metadata = {
+      userId,
+      packageKey: "creator",
+      credits: "abc",
+    };
+    await expect(handleStripeEvent(db, ev)).resolves.toBeUndefined();
+    expect(await getBalance(db, userId)).toBe(0);
   });
 });
