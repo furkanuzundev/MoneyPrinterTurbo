@@ -1,0 +1,28 @@
+#cloud-config
+# Reelate ek worker makinesi (elle ölçekleme).
+# Kullanım: Hetzner Cloud -> Add Server -> CPX51 -> User data'ya bu dosya.
+# Açıldıktan sonra RUNBOOK.md "Elle ölçekleme" bölümündeki 2 adımı uygula
+# (secrets kopyala + compose up).
+package_update: true
+packages: [docker.io, docker-compose-v2, git]
+write_files:
+  - path: /opt/reelate-worker/docker-compose.yml
+    content: |
+      name: reelate-worker
+      services:
+        worker:
+          build:
+            context: /opt/reelate-worker/src
+            dockerfile: deploy/worker.Dockerfile
+          env_file: /opt/reelate-worker/.env.production
+          volumes:
+            - /opt/reelate-worker/config.toml:/app/config.toml:ro
+            - reelate_worker_storage:/app/storage
+          restart: unless-stopped
+          deploy:
+            replicas: 2
+      volumes:
+        reelate_worker_storage: {}
+runcmd:
+  - git clone https://github.com/furkanuzundev/MoneyPrinterTurbo.git /opt/reelate-worker/src || true
+  - systemctl enable --now docker
