@@ -1,48 +1,42 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   creditsForDuration,
   estimateDurationSeconds,
 } from "@/lib/credits/pricing";
-import {
-  ASPECTS,
-  DURATION_OPTIONS,
-  LANGUAGES,
-  VOICES,
-} from "@/lib/jobs/options";
-import { Card, CaptionChip } from "@/components/ui";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { VOICES } from "@/lib/jobs/options";
+import { scriptFromScenes, type Scene } from "@/lib/jobs/scenes";
+import { formatDuration } from "@/lib/jobs/display";
+import { JobLive } from "@/components/dashboard/job-live";
+import { StepIndicator } from "./step-indicator";
+import { BriefStep, type BriefValues } from "./brief-step";
+import { ScriptStep } from "./script-step";
 
 export function Wizard({ balance }: { balance: number }) {
   const router = useRouter();
-  const [subject, setSubject] = useState("");
-  const [language, setLanguage] = useState<string>("en");
-  const [voice, setVoice] = useState<string>(VOICES[0].id);
-  const [aspect, setAspect] = useState<string>("9:16");
-  const [targetSeconds, setTargetSeconds] = useState<number>(60);
-  const [script, setScript] = useState("");
-  const [terms, setTerms] = useState("");
+  const [step, setStep] = useState(1);
+  const [brief, setBrief] = useState<BriefValues>({
+    subject: "",
+    language: "en",
+    voice: VOICES[0].id,
+    aspect: "9:16",
+    targetSeconds: 60,
+  });
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [terms, setTerms] = useState<string[]>([]);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobDone, setJobDone] = useState(false);
   const [busy, setBusy] = useState<"script" | "job" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const estimate = useMemo(() => estimateDurationSeconds(script), [script]);
-  const credits = script.trim()
-    ? Math.max(1, creditsForDuration(estimate))
-    : creditsForDuration(targetSeconds);
-  const canAfford = balance >= credits;
-  const voices = VOICES.filter((v) => v.language === language);
+  const script = scriptFromScenes(scenes);
+  const credits =
+    scenes.length > 0
+      ? Math.max(1, creditsForDuration(estimateDurationSeconds(script)))
+      : creditsForDuration(brief.targetSeconds);
 
   async function generateScript() {
     setBusy("script");
@@ -51,12 +45,17 @@ export function Wizard({ balance }: { balance: number }) {
       const res = await fetch("/api/script", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, language, targetSeconds }),
+        body: JSON.stringify({
+          subject: brief.subject,
+          language: brief.language,
+          targetSeconds: brief.targetSeconds,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Script generation failed");
-      setScript(data.script);
-      setTerms((data.terms as string[]).join(", "));
+      setScenes(data.scenes as Scene[]);
+      setTerms((data.terms as string[]) ?? []);
+      setStep(2);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -72,11 +71,12 @@ export function Wizard({ balance }: { balance: number }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subject,
+          subject: brief.subject,
           script,
-          terms: terms.split(",").map((t) => t.trim()).filter(Boolean),
-          aspect,
-          voice,
+          scenes,
+          terms,
+          aspect: brief.aspect,
+          voice: brief.voice,
         }),
       });
       const data = await res.json();
@@ -87,154 +87,87 @@ export function Wizard({ balance }: { balance: number }) {
         }
         throw new Error(data.error ?? "Could not start the job");
       }
-      router.push(`/dashboard/jobs/${data.jobId}`);
+      setJobId(data.jobId);
+      setStep(3);
+      router.refresh(); // topbar/sidebar bakiyesi düşen krediyi göstersin
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
       setBusy(null);
     }
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <Card className="space-y-6 border-0">
-        <div>
-          <Label className="mb-1 block text-sm text-muted">Video subject</Label>
-          <Input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="e.g. three morning habits that changed my life"
-          />
+    <div>
+      {balance === 0 && step <= 2 && (
+        <div className="mb-5 flex flex-col gap-3 rounded-[14px] border border-[rgba(217,139,122,0.3)] bg-[rgba(217,139,122,0.08)] px-[18px] py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-[#E7C3B8]">
+            <strong className="text-[#F0D4C9]">
+              You&apos;re out of credits.
+            </strong>{" "}
+            You can draft a script for free, but rendering needs at least 1
+            credit.
+          </div>
+          <Link
+            href="/dashboard/buy"
+            className="whitespace-nowrap rounded-[10px] bg-caption px-4 py-[9px] text-center text-[13.5px] font-bold text-caption-ink transition-opacity hover:opacity-90"
+          >
+            Buy credits
+          </Link>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label className="mb-1 block text-sm text-muted">Length</Label>
-            <Select
-              value={String(targetSeconds)}
-              onValueChange={(value) => setTargetSeconds(Number(value))}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DURATION_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={String(s)}>
-                    {s >= 60 ? `${s / 60} min` : `${s} sec`} —{" "}
-                    {creditsForDuration(s)} cr
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="mb-1 block text-sm text-muted">Language</Label>
-            <Select
-              value={language}
-              onValueChange={(value) => {
-                setLanguage(value);
-                const first = VOICES.find((v) => v.language === value);
-                if (first) setVoice(first.id);
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((l) => (
-                  <SelectItem key={l.code} value={l.code}>
-                    {l.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="mb-1 block text-sm text-muted">Voice</Label>
-            <Select value={voice} onValueChange={(value) => setVoice(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {voices.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="mb-1 block text-sm text-muted">Format</Label>
-            <Select value={aspect} onValueChange={(value) => setAspect(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ASPECTS.map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {a === "9:16" ? "9:16 (TikTok/Reels)" : a === "16:9" ? "16:9 (YouTube)" : "1:1 (Square)"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <Button
-          onClick={generateScript}
-          disabled={!subject.trim() || busy !== null}
-          variant="secondary"
-        >
-          {busy === "script" ? "Writing script…" : script ? "Regenerate script" : "Generate script with AI"}
-        </Button>
-
-        {script && (
-          <>
-            <div>
-              <Label className="mb-1 block text-sm text-muted">
-                Stock footage search terms (comma separated)
-              </Label>
-              <Input
-                value={terms}
-                onChange={(e) => setTerms(e.target.value)}
-              />
-            </div>
-
-            <div className="-mx-6 -mb-6 flex flex-wrap items-center justify-between gap-4 rounded-b-2xl bg-elevated px-6 py-4">
-              <div className="font-mono-data text-sm text-muted">
-                ~{Math.floor(estimate / 60)}:
-                {String(estimate % 60).padStart(2, "0")} ·{" "}
-                <CaptionChip>{credits} credits</CaptionChip>
-              </div>
-              {canAfford ? (
-                <Button onClick={createJob} disabled={busy !== null} className="px-6 py-2">
-                  {busy === "job" ? "Starting…" : `Generate video (${credits} cr)`}
-                </Button>
-              ) : (
-                <Button asChild className="px-6 py-2">
-                  <a href="/dashboard/buy">
-                    Need {credits - balance} more credits — Buy
-                  </a>
-                </Button>
-              )}
-            </div>
-          </>
-        )}
-      </Card>
-
-      {script && (
-        <Card className="space-y-1 border-0">
-          <Label className="mb-1 block text-sm text-muted">
-            Script (edit freely — price updates live)
-          </Label>
-          <Textarea
-            value={script}
-            onChange={(e) => setScript(e.target.value)}
-            rows={12}
-            className="min-h-[240px] font-sans leading-relaxed"
-          />
-        </Card>
       )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div>
+        <h1 className="mb-1.5 font-display text-3xl font-extrabold tracking-[-0.02em] text-bone lg:text-[34px]">
+          Create a video
+        </h1>
+        <p className="text-[15.5px] text-muted">
+          One sentence in, a ready-to-post short out.
+        </p>
+      </div>
+
+      <StepIndicator
+        current={jobDone ? 4 : step}
+        costLabel={`costs ${credits} credit${credits > 1 ? "s" : ""}`}
+      />
+
+      {step === 1 && (
+        <BriefStep
+          values={brief}
+          onChange={(patch) => setBrief((b) => ({ ...b, ...patch }))}
+          onGenerate={generateScript}
+          busy={busy === "script"}
+        />
+      )}
+
+      {step === 2 && (
+        <ScriptStep
+          subject={brief.subject}
+          scenes={scenes}
+          voice={brief.voice}
+          aspect={brief.aspect}
+          balance={balance}
+          busy={busy}
+          onScenesChange={setScenes}
+          onRegenerate={generateScript}
+          onGenerate={createJob}
+          onBack={() => setStep(1)}
+        />
+      )}
+
+      {step >= 3 && jobId && (
+        <JobLive
+          jobId={jobId}
+          title={brief.subject}
+          aspect={brief.aspect}
+          duration={`~${formatDuration(estimateDurationSeconds(script))}`}
+          initialStatus="queued"
+          creditsLeft={Math.max(0, balance - credits)}
+          onDone={() => setJobDone(true)}
+        />
+      )}
+
+      {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
     </div>
   );
 }

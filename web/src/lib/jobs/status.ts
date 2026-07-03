@@ -24,12 +24,7 @@ export function estimateEtaSeconds(
   return Math.ceil(depth / Math.max(1, workers)) * AVG_RENDER_SECONDS + AVG_RENDER_SECONDS;
 }
 
-export function stageForProgress(progress: number): string {
-  if (progress < 15) return "Preparing";
-  if (progress < 55) return "Gathering footage";
-  if (progress < 95) return "Rendering";
-  return "Finishing";
-}
+export { RENDER_STAGES, stageForProgress, stageIndexForProgress } from "./stages";
 
 export async function syncJobStatus(
   db: Db,

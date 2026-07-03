@@ -233,6 +233,43 @@ def generate_subtitle(task_id, params, video_script, sub_maker, audio_file):
     return subtitle_path
 
 
+def generate_scene_subtitle(task_id, params, audio_duration):
+    """
+    Reelate sahne modu: SRT sahne caption'larından üretilir. Süreler,
+    voice.py'daki oransal teknikle voiceover karakter payına göre dağıtılır;
+    son sahne kalan süreyi yutar (yuvarlama kaybı olmaz).
+    """
+    if not params.subtitle_enabled:
+        return ""
+    scenes = [s for s in (params.scenes or []) if s.voiceover.strip()]
+    if not scenes:
+        return ""
+    total_chars = sum(len(s.voiceover.strip()) for s in scenes)
+    if total_chars <= 0:
+        return ""
+
+    subtitle_path = path.join(utils.task_dir(task_id), "subtitle.srt")
+    audio_100ns = max(int(audio_duration * 10**7), 1)
+    items = []
+    current = 0
+    for idx, scene in enumerate(scenes):
+        if idx == len(scenes) - 1:
+            end = audio_100ns
+        else:
+            share = len(scene.voiceover.strip()) / total_chars
+            end = min(current + max(int(audio_100ns * share), 1), audio_100ns)
+        text = (scene.caption or scene.voiceover).strip()
+        start_t = voice.mktimestamp(current).replace(".", ",")
+        end_t = voice.mktimestamp(end).replace(".", ",")
+        items.append(f"{idx + 1}\n{start_t} --> {end_t}\n{text}\n")
+        current = end
+
+    with open(subtitle_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(items) + "\n")
+    logger.info(f"scene subtitle created: {subtitle_path} ({len(items)} scenes)")
+    return subtitle_path
+
+
 def get_video_materials(task_id, params, video_terms, audio_duration):
     if params.video_source == "local":
         logger.info("\n\n## preprocess local materials")
@@ -385,9 +422,12 @@ def start(task_id, params: VideoParams, stop_at: str = "video"):
         return {"audio_file": audio_file, "audio_duration": audio_duration}
 
     # 4. Generate subtitle
-    subtitle_path = generate_subtitle(
-        task_id, params, video_script, sub_maker, audio_file
-    )
+    if getattr(params, "scenes", None):
+        subtitle_path = generate_scene_subtitle(task_id, params, audio_duration)
+    else:
+        subtitle_path = generate_subtitle(
+            task_id, params, video_script, sub_maker, audio_file
+        )
 
     if stop_at == "subtitle":
         sm.state.update_task(

@@ -45,6 +45,12 @@ export async function spendCreditsForJob(
     subject: string;
     script: string;
     terms: string[];
+    scenes: { tag: string; caption: string; voiceover: string }[] | null;
+    captionStyle: {
+      size: "sm" | "md" | "lg";
+      position: "top" | "center" | "bottom";
+      color: "yellow" | "white" | "none";
+    } | null;
     aspect: string;
     voice: string;
     targetSeconds: number;
@@ -65,6 +71,8 @@ export async function spendCreditsForJob(
         subject: job.subject,
         script: job.script,
         terms: job.terms,
+        scenes: job.scenes,
+        captionStyle: job.captionStyle,
         aspect: job.aspect,
         voice: job.voice,
         targetSeconds: job.targetSeconds,

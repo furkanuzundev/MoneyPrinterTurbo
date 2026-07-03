@@ -15,6 +15,7 @@ export async function POST(request: Request) {
       subject: String(body.subject ?? ""),
       script: String(body.script ?? ""),
       terms: Array.isArray(body.terms) ? body.terms : [],
+      scenes: body.scenes,
       aspect: String(body.aspect ?? ""),
       voice: String(body.voice ?? ""),
     });

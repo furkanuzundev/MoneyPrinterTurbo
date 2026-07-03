@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getRedis } from "@/lib/jobs/queue";
-import { generateScriptAndTerms } from "@/lib/script/generate";
+import { generateScenesAndTerms } from "@/lib/script/generate";
 
 const HOURLY_LIMIT = 20;
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   if (!subject) return NextResponse.json({ error: "Subject is required" }, { status: 400 });
 
   try {
-    const result = await generateScriptAndTerms(subject, language, targetSeconds);
+    const result = await generateScenesAndTerms(subject, language, targetSeconds);
     return NextResponse.json(result);
   } catch (e) {
     console.error("script generation failed", e);

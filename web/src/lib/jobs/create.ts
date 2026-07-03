@@ -6,6 +6,12 @@ import { refundJob, spendCreditsForJob } from "@/lib/credits/ledger";
 import { creditsForDuration, estimateDurationSeconds } from "@/lib/credits/pricing";
 import { ASPECTS, MAX_SCRIPT_WORDS, VOICES } from "./options";
 import { enqueueJob } from "./queue";
+import {
+  DEFAULT_CAPTION_STYLE,
+  engineSubtitleParams,
+  sanitizeScenes,
+  type Scene,
+} from "./scenes";
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -18,10 +24,22 @@ export async function createVideoJob(
   db: Db,
   redis: Redis,
   userId: string,
-  input: { subject: string; script: string; terms: string[]; aspect: string; voice: string },
+  input: {
+    subject: string;
+    script: string;
+    terms: string[];
+    scenes?: unknown;
+    aspect: string;
+    voice: string;
+  },
 ): Promise<{ jobId: string; credits: number }> {
   const subject = input.subject.trim().slice(0, 300);
-  const script = input.script.trim();
+  const scenes: Scene[] = sanitizeScenes(input.scenes);
+  // Sahneler varsa script her zaman voiceover'lardan türetilir (tutarlılık).
+  const script =
+    scenes.length > 0
+      ? scenes.map((s) => s.voiceover).join(" ").trim()
+      : input.script.trim();
   const terms = (input.terms ?? [])
     .map((t) => String(t).slice(0, 100))
     .filter(Boolean)
@@ -43,10 +61,13 @@ export async function createVideoJob(
 
   // Kredi düşme + iş kaydı tek transaction (2a). Enqueue bunun DIŞINDA:
   // Redis düşerse iade + failed işaretleme yapılır; kredi asla havada kalmaz.
+  const captionStyle = scenes.length > 0 ? DEFAULT_CAPTION_STYLE : null;
   const { jobId } = await spendCreditsForJob(db, userId, {
     subject,
     script,
     terms,
+    scenes: scenes.length > 0 ? scenes : null,
+    captionStyle,
     aspect: input.aspect,
     voice: input.voice,
     targetSeconds,
@@ -61,6 +82,15 @@ export async function createVideoJob(
       video_aspect: input.aspect,
       voice_name: input.voice,
       subtitle_enabled: true,
+      ...(scenes.length > 0
+        ? {
+            scenes: scenes.map((s) => ({
+              caption: s.caption,
+              voiceover: s.voiceover,
+            })),
+            ...engineSubtitleParams(captionStyle ?? DEFAULT_CAPTION_STYLE),
+          }
+        : {}),
     });
   } catch (e) {
     // Önce iade, sonra terminal işaret (status.ts ile aynı ders): iade geçici

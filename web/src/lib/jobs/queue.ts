@@ -25,6 +25,12 @@ export type EngineParams = {
   video_aspect: string;
   voice_name: string;
   subtitle_enabled: boolean;
+  // Sahne bazlı altyazı: varsa worker SRT'yi sahne caption'larından üretir.
+  scenes?: { caption: string; voiceover: string }[];
+  subtitle_position?: string;
+  font_size?: number;
+  text_fore_color?: string;
+  text_background_color?: boolean | string;
 };
 
 export function enqueueSentinelKey(jobId: string): string {

@@ -99,6 +99,15 @@ export const videoJobs = pgTable("video_jobs", {
   subject: text("subject").notNull(),
   script: text("script").notNull(),
   terms: jsonb("terms").$type<string[]>().notNull(),
+  // Sahne bazlı script: null ise iş, sahne yapısı olmadan (düz script) üretilmiştir.
+  scenes: jsonb("scenes").$type<
+    { tag: string; caption: string; voiceover: string }[]
+  >(),
+  captionStyle: jsonb("caption_style").$type<{
+    size: "sm" | "md" | "lg";
+    position: "top" | "center" | "bottom";
+    color: "yellow" | "white" | "none";
+  }>(),
   aspect: text("aspect").notNull().default("9:16"),
   voice: text("voice").notNull(),
   targetSeconds: integer("target_seconds").notNull(),

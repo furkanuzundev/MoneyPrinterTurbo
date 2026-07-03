@@ -1,4 +1,9 @@
 import OpenAI from "openai";
+import {
+  sanitizeScenes,
+  scriptFromScenes,
+  type Scene,
+} from "@/lib/jobs/scenes";
 
 let client: OpenAI | null = null;
 
@@ -29,6 +34,28 @@ export function buildScriptPrompt(
   ].join("\n");
 }
 
+export function buildScenesPrompt(
+  subject: string,
+  language: string,
+  targetSeconds: number,
+): string {
+  const words = Math.round(targetSeconds * 2.5);
+  const sceneCount = Math.max(3, Math.min(8, Math.round(targetSeconds / 15) + 1));
+  const languageName = LANGUAGE_NAMES[language] ?? "English";
+  return [
+    `Write a scene-based script for a short vertical video about: ${subject}.`,
+    `Language: ${languageName}. Total voiceover length: about ${words} words across ${sceneCount} scenes.`,
+    "The first scene is the HOOK (grab attention in one sentence), the last is the CTA",
+    '(one memorable takeaway or follow prompt), middle scenes are tagged "SCENE 1", "SCENE 2", …',
+    "Each scene has:",
+    '- "caption": the on-screen text, max 8 punchy words',
+    '- "voiceover": the spoken narration for that scene, plain prose, no emojis/hashtags',
+    "Also give 5 short English stock-footage search terms matching the video.",
+    "Return ONLY a JSON object, no code fences:",
+    '{"scenes":[{"tag":"HOOK","caption":"…","voiceover":"…"}],"terms":["…"]}',
+  ].join("\n");
+}
+
 export function buildTermsPrompt(subject: string, script: string): string {
   return [
     `Video subject: ${subject}`,
@@ -53,6 +80,58 @@ export function parseTerms(raw: string): string[] {
     .map((line) => line.replace(/^[-*\d.\s"']+|["',]+$/g, "").trim())
     .filter(Boolean)
     .slice(0, 5);
+}
+
+export function parseScenesPayload(
+  raw: string,
+): { scenes: Scene[]; terms: string[] } | null {
+  const cleaned = raw.replace(/```(?:json)?/g, "").trim();
+  try {
+    const parsed = JSON.parse(cleaned);
+    const scenes = sanitizeScenes(parsed?.scenes);
+    if (scenes.length === 0) return null;
+    const terms = Array.isArray(parsed?.terms)
+      ? parsed.terms.map(String).filter(Boolean).slice(0, 5)
+      : [];
+    return { scenes, terms };
+  } catch {
+    return null;
+  }
+}
+
+export async function generateScenesAndTerms(
+  subject: string,
+  language: string,
+  targetSeconds: number,
+): Promise<{ scenes: Scene[]; script: string; terms: string[] }> {
+  const openai = getOpenAI();
+  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const res = await openai.chat.completions.create({
+    model,
+    messages: [
+      { role: "user", content: buildScenesPrompt(subject, language, targetSeconds) },
+    ],
+    response_format: { type: "json_object" },
+  });
+  const parsed = parseScenesPayload(res.choices[0]?.message?.content ?? "");
+  if (parsed) {
+    return {
+      scenes: parsed.scenes,
+      script: scriptFromScenes(parsed.scenes),
+      terms: parsed.terms.length > 0 ? parsed.terms : [subject],
+    };
+  }
+  // Sahne JSON'u çıkmadıysa eski düz-script yoluna düş: tek sahne olarak sar.
+  const { script, terms } = await generateScriptAndTerms(
+    subject,
+    language,
+    targetSeconds,
+  );
+  return {
+    scenes: [{ tag: "HOOK", caption: subject.slice(0, 120), voiceover: script }],
+    script,
+    terms,
+  };
 }
 
 export async function generateScriptAndTerms(

@@ -55,6 +55,12 @@ class MaterialInfo:
     duration: int = 0
 
 
+class SceneItem(BaseModel):
+    # Reelate sahne modeli: ekranda yanan caption ile seslendirilen metin ayrıdır.
+    caption: str = ""
+    voiceover: str
+
+
 class VideoParams(BaseModel):
     """
     {
@@ -94,6 +100,10 @@ class VideoParams(BaseModel):
     bgm_type: Optional[str] = "random"
     bgm_file: Optional[str] = ""
     bgm_volume: Optional[float] = 0.2
+
+    # Sahne listesi verilirse altyazı SRT'si sahne caption'larından üretilir
+    # (süreler voiceover karakter payına göre dağıtılır).
+    scenes: Optional[List[SceneItem]] = None
 
     subtitle_enabled: Optional[bool] = True
     subtitle_position: Optional[str] = config.ui.get("subtitle_position", "bottom")  # top, bottom, center, custom
