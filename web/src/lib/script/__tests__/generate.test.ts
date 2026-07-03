@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildScriptPrompt, buildTermsPrompt, parseTerms } from "../generate";
+import {
+  buildScenesPrompt,
+  buildScriptPrompt,
+  buildTermsPrompt,
+  parseTerms,
+} from "../generate";
 
 describe("buildScriptPrompt", () => {
   const prompt = buildScriptPrompt("morning habits", "en", 60);
@@ -12,6 +17,25 @@ describe("buildScriptPrompt", () => {
   });
   it("supports turkish", () => {
     expect(buildScriptPrompt("sabah", "tr", 30)).toContain("Turkish");
+  });
+});
+
+describe("locale language coverage", () => {
+  it("maps full locale codes to language names in scenes prompt", () => {
+    expect(buildScenesPrompt("konu", "tr-TR", 60)).toContain("Language: Turkish");
+    expect(buildScenesPrompt("konu", "tr-TR", 60)).not.toContain("Language: English");
+  });
+  it("maps several locales correctly", () => {
+    expect(buildScenesPrompt("x", "es-ES", 60)).toContain("Spanish");
+    expect(buildScenesPrompt("x", "ja-JP", 60)).toContain("Japanese");
+    expect(buildScenesPrompt("x", "de-DE", 60)).toContain("German");
+  });
+  it("keeps legacy short codes working", () => {
+    expect(buildScriptPrompt("x", "tr", 30)).toContain("Turkish");
+    expect(buildScriptPrompt("x", "en", 30)).toContain("English");
+  });
+  it("falls back to English for unknown codes", () => {
+    expect(buildScenesPrompt("x", "xx-YY", 60)).toContain("English");
   });
 });
 
