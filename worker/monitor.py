@@ -11,6 +11,7 @@ import time
 import requests
 from loguru import logger
 
+from app.config import config
 from worker import queue
 from worker.main import _redis_client
 
@@ -58,6 +59,8 @@ def send_alert(depth: int) -> None:
 
 def run() -> None:
     r = _redis_client()
+    host = config.app.get("redis_host", "localhost")
+    logger.info(f"monitor redis target: {host}")
     history: list[int] = []
     last_alert = 0.0
     logger.info(

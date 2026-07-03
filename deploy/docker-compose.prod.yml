@@ -41,6 +41,8 @@ services:
       dockerfile: deploy/worker.Dockerfile
     command: ["uv", "run", "--no-sync", "python", "-m", "worker.monitor"]
     env_file: /opt/reelate/.env.production
+    volumes:
+      - /opt/reelate/config.toml:/app/config.toml:ro
     networks: [internal]
     restart: unless-stopped
     cpus: "0.2"
