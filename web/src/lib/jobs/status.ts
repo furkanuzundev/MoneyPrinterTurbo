@@ -7,6 +7,10 @@ import { ENGINE_COMPLETE, ENGINE_FAILED, readEngineState } from "./queue";
 
 export type VideoJobRow = typeof videoJobs.$inferSelect;
 
+// Kuyruğa yazılamadan (enqueue öncesi crash) askıda kalan işler için eşik:
+// bu süreden eski + Redis'te izi olmayan queued iş terk edilmiş sayılır.
+export const STUCK_QUEUED_THRESHOLD_MS = 15 * 60 * 1000;
+
 export function stageForProgress(progress: number): string {
   if (progress < 15) return "Preparing";
   if (progress < 55) return "Gathering footage";
@@ -25,7 +29,25 @@ export async function syncJobStatus(
   if (job.status === "failed") return { job, progress: 0 };
 
   const engine = await readEngineState(redis, jobId);
-  if (!engine) return { job, progress: 0 };
+  if (!engine) {
+    const isStuck =
+      job.status === "queued" &&
+      Date.now() - job.createdAt.getTime() > STUCK_QUEUED_THRESHOLD_MS;
+    if (!isStuck) return { job, progress: 0 };
+    // Harcama commit'lendi ama iş kuyruğa hiç ulaşmadı (crash penceresi):
+    // önce iade, sonra terminal işaret (yerleşik sıralama dersi).
+    await refundJob(db, jobId);
+    const [updated] = await db
+      .update(videoJobs)
+      .set({
+        status: "failed",
+        error: "The job never reached the queue. Your credits have been refunded.",
+        updatedAt: new Date(),
+      })
+      .where(eq(videoJobs.id, jobId))
+      .returning();
+    return { job: updated, progress: 0 };
+  }
 
   if (engine.state === ENGINE_COMPLETE) {
     const outputPath = `tasks/${jobId}/final-1.mp4`;

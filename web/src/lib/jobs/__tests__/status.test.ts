@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import Redis from "ioredis";
 import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -90,6 +90,22 @@ describe("syncJobStatus", () => {
     await redis.del(jobId); // worker state'i uçtu
     const result = await syncJobStatus(db, redis, jobId);
     expect(result!.job.status).toBe("done"); // Postgres artık kaynak
+  });
+  it("reconciles a stuck queued job with no engine state (refund + failed)", async () => {
+    // işi eşikten eski göster
+    await db
+      .update(schema.videoJobs)
+      .set({ createdAt: new Date(Date.now() - 16 * 60 * 1000) })
+      .where(eq(schema.videoJobs.id, jobId));
+    const result = await syncJobStatus(db, redis, jobId);
+    expect(result!.job.status).toBe("failed");
+    expect(await getBalance(db, userId)).toBe(2); // iade edildi
+  });
+
+  it("leaves a fresh queued job alone", async () => {
+    const result = await syncJobStatus(db, redis, jobId);
+    expect(result!.job.status).toBe("queued");
+    expect(await getBalance(db, userId)).toBe(1); // iade YOK
   });
 });
 
