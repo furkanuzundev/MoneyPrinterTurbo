@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
 import Redis from "ioredis";
 import { Pool } from "pg";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 import { getBalance, grantWelcomeBonus, spendCreditsForJob } from "@/lib/credits/ledger";
 import { stageForProgress, syncJobStatus } from "../status";
@@ -66,6 +66,23 @@ describe("syncJobStatus", () => {
     expect(await getBalance(db, userId)).toBe(2);
     const [job] = await db.select().from(schema.videoJobs);
     expect(job.status).toBe("failed");
+  });
+  it("retries the refund on next sync if refund fails transiently", async () => {
+    await redis.hset(jobId, { state: "-1", progress: "0" });
+    const ledger = await import("@/lib/credits/ledger");
+    const original = ledger.refundJob;
+    const spy = vi
+      .spyOn(ledger, "refundJob")
+      .mockRejectedValueOnce(new Error("transient db error"));
+    await expect(syncJobStatus(db, redis, jobId)).rejects.toThrow("transient");
+    // iş terminal OLMAMALI: bir sonraki sync iadeyi tamamlayabilmeli
+    const [jobAfterError] = await db.select().from(schema.videoJobs);
+    expect(jobAfterError.status).not.toBe("failed");
+    spy.mockRestore();
+    const result = await syncJobStatus(db, redis, jobId);
+    expect(result!.job.status).toBe("failed");
+    expect(await getBalance(db, userId)).toBe(2); // iade gerçekleşti
+    void original;
   });
   it("does not touch redis for already-terminal jobs", async () => {
     await redis.hset(jobId, { state: "1", progress: "100" });

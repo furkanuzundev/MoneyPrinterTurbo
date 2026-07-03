@@ -37,6 +37,10 @@ export async function syncJobStatus(
     return { job: updated, progress: 100 };
   }
   if (engine.state === ENGINE_FAILED) {
+    // Önce iade, sonra terminal işaret: refund geçici olarak başarısız olursa
+    // iş non-terminal kalır ve bir SONRAKİ sync yeniden dener (refundJob
+    // idempotent + DB unique index korumalı; en-az-bir-kez güvenli).
+    await refundJob(db, jobId);
     const [updated] = await db
       .update(videoJobs)
       .set({
@@ -46,7 +50,6 @@ export async function syncJobStatus(
       })
       .where(eq(videoJobs.id, jobId))
       .returning();
-    await refundJob(db, jobId); // idempotent + DB unique index korumalı
     return { job: updated, progress: 0 };
   }
   if (job.status === "queued" && engine.progress > 0) {
