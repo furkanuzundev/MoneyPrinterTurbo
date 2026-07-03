@@ -251,6 +251,37 @@ class TestTaskService(unittest.TestCase):
         create_subtitle.assert_not_called()
         whisper_create.assert_not_called()
 
+    def test_generate_scene_subtitle_uses_voiceover_not_caption(self):
+        """
+        Sahne modu fallback altyazısı (sub_maker yok) konuşulan voiceover
+        metnini yazmalı — ekrandaki caption başlığını değil.
+        """
+        from app.models.schema import SceneItem
+
+        tmp = tempfile.mkdtemp()
+        try:
+            params = VideoParams(
+                video_subject="puding",
+                video_script="Malzemeleri hazırlıyoruz. Karıştırıyoruz.",
+                subtitle_enabled=True,
+                scenes=[
+                    SceneItem(caption="Hazırlık!", voiceover="Malzemeleri hazırlıyoruz."),
+                    SceneItem(caption="Karıştır!", voiceover="Karıştırıyoruz."),
+                ],
+            )
+            with patch.object(tm.utils, "task_dir", return_value=tmp):
+                srt_path = tm.generate_scene_subtitle("t1", params, audio_duration=6.0)
+
+            with open(srt_path, encoding="utf-8") as f:
+                content = f.read()
+
+            self.assertIn("Malzemeleri hazırlıyoruz.", content)
+            self.assertIn("Karıştırıyoruz.", content)
+            self.assertNotIn("Hazırlık!", content)
+            self.assertNotIn("Karıştır!", content)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     @unittest.skipUnless(
         RUN_INTEGRATION_TESTS,
         "MPT_RUN_INTEGRATION_TESTS not set",

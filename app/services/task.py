@@ -258,7 +258,9 @@ def generate_scene_subtitle(task_id, params, audio_duration):
         else:
             share = len(scene.voiceover.strip()) / total_chars
             end = min(current + max(int(audio_100ns * share), 1), audio_100ns)
-        text = (scene.caption or scene.voiceover).strip()
+        # Altyazı her zaman konuşulan metni gösterir; caption sadece ekran
+        # başlığıdır ve SRT'ye sızmamalıdır.
+        text = scene.voiceover.strip()
         start_t = voice.mktimestamp(current).replace(".", ",")
         end_t = voice.mktimestamp(end).replace(".", ",")
         items.append(f"{idx + 1}\n{start_t} --> {end_t}\n{text}\n")
