@@ -17,6 +17,9 @@ export function LandingFooter() {
         <a href="#pricing" className="transition-colors hover:text-bone">
           Pricing
         </a>
+        <Link href="/privacy" className="transition-colors hover:text-bone">
+          Privacy
+        </Link>
       </div>
     </footer>
   );
