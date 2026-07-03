@@ -43,15 +43,28 @@ export function BriefStep({
   busy: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentUrlRef = useRef<string | null>(null);
+  const requestSeqRef = useRef(0);
   // Hangi ses için önizleme durumu: null | { id, state }
   const [preview, setPreview] = useState<{ id: string; state: "loading" | "playing" | "error" } | null>(null);
 
-  async function playPreview(voiceId: string) {
-    // Çalan varsa durdur.
+  function stopCurrent() {
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
       audioRef.current = null;
     }
+    if (currentUrlRef.current) {
+      URL.revokeObjectURL(currentUrlRef.current);
+      currentUrlRef.current = null;
+    }
+  }
+
+  async function playPreview(voiceId: string) {
+    // Çalan varsa durdur ve blob URL'sini serbest bırak.
+    stopCurrent();
+    const token = ++requestSeqRef.current;
     setPreview({ id: voiceId, state: "loading" });
     try {
       const res = await fetch("/api/voice/preview", {
@@ -59,22 +72,37 @@ export function BriefStep({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voiceName: voiceId }),
       });
+      if (token !== requestSeqRef.current) return;
       if (!res.ok) throw new Error(`preview ${res.status}`);
       const blob = await res.blob();
+      if (token !== requestSeqRef.current) return;
       const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => {
+      if (token !== requestSeqRef.current) {
         URL.revokeObjectURL(url);
+        return;
+      }
+      const audio = new Audio(url);
+      audio.onended = () => {
+        if (currentUrlRef.current === url) {
+          URL.revokeObjectURL(url);
+          currentUrlRef.current = null;
+        }
         setPreview((p) => (p?.id === voiceId ? null : p));
       };
       audio.onerror = () => {
-        URL.revokeObjectURL(url);
+        if (currentUrlRef.current === url) {
+          URL.revokeObjectURL(url);
+          currentUrlRef.current = null;
+        }
         setPreview({ id: voiceId, state: "error" });
       };
+      audioRef.current = audio;
+      currentUrlRef.current = url;
       await audio.play();
+      if (token !== requestSeqRef.current) return;
       setPreview({ id: voiceId, state: "playing" });
     } catch {
+      if (token !== requestSeqRef.current) return;
       setPreview({ id: voiceId, state: "error" });
     }
   }
