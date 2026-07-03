@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CaptionChip } from "@/components/ui";
+import { Badge } from "@/components/ui/badge";
 
 const STATUS_LABELS: Record<string, string> = {
   queued: "Queued",
@@ -34,19 +34,19 @@ export function JobRow({ job }: { job: JobRowData }) {
         </div>
       </div>
       {job.status === "done" ? (
-        <CaptionChip className="shrink-0">{STATUS_LABELS[job.status]}</CaptionChip>
+        <Badge className="shrink-0">{STATUS_LABELS[job.status]}</Badge>
       ) : job.status === "failed" ? (
-        <span className="shrink-0 text-red-400">
+        <Badge variant="destructive" className="shrink-0">
           {STATUS_LABELS[job.status] ?? job.status}
-        </span>
+        </Badge>
       ) : (
-        <span className="flex shrink-0 items-center gap-2 text-muted">
+        <Badge variant="secondary" className="shrink-0 gap-2">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-caption opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-caption" />
           </span>
           {STATUS_LABELS[job.status] ?? job.status}
-        </span>
+        </Badge>
       )}
     </Link>
   );

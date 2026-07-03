@@ -1,11 +1,7 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 function cx(...classes: Array<string | undefined | false>) {
   return classes.filter(Boolean).join(" ");
-}
-
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "ghost";
 }
 
 const BUTTON_BASE =
@@ -23,10 +19,11 @@ export function buttonClasses(
   return cx(BUTTON_BASE, BUTTON_VARIANTS[variant], className);
 }
 
-export function Button({ variant = "primary", className, ...props }: ButtonProps) {
-  return <button className={buttonClasses(variant, className)} {...props} />;
-}
-
+/**
+ * NOTE: kept alongside shadcn's Card because the landing/use-cases/signin/buy
+ * screens still use it and must stay byte-identical (see project constraints).
+ * App/dashboard screens should prefer @/components/ui/card going forward.
+ */
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
