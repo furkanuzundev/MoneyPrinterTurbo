@@ -88,6 +88,10 @@ export async function createVideoJob(
               caption: s.caption,
               voiceover: s.voiceover,
             })),
+            // Stok klipleri senaryo anlatı sırasına eşle: motor bu bayrağı
+            // sıralı terim üretimi + round-robin indirme + sequential concat
+            // olarak yorumlar, böylece alakasız/rastgele klipler engellenir.
+            match_materials_to_script: true,
             ...engineSubtitleParams(captionStyle ?? DEFAULT_CAPTION_STYLE),
           }
         : {}),

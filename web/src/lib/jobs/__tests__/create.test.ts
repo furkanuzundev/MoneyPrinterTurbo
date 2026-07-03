@@ -46,6 +46,19 @@ describe("createVideoJob", () => {
     expect(payload.params.voice_name).toBe(INPUT.voice);
     expect(payload.params.subtitle_enabled).toBe(true);
   });
+  it("enables script-ordered material matching for scene jobs", async () => {
+    const { jobId } = await createVideoJob(db, redis, userId, {
+      ...INPUT,
+      script: "",
+      scenes: [
+        { caption: "Hazırlık!", voiceover: "Malzemeleri hazırlıyoruz." },
+        { caption: "Karıştır!", voiceover: "Karıştırıyoruz." },
+      ],
+    });
+    const payload = JSON.parse((await redis.rpop(PENDING_KEY))!);
+    expect(payload.task_id).toBe(jobId);
+    expect(payload.params.match_materials_to_script).toBe(true);
+  });
   it("prices longer scripts higher", async () => {
     const { credits } = await createVideoJob(db, redis, userId, {
       ...INPUT,
