@@ -18,8 +18,16 @@ export async function POST(request: Request) {
   }
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const taxEnabled = process.env.STRIPE_TAX_ENABLED === "true";
-  const checkout = await getStripe().checkout.sessions.create(
-    buildCheckoutParams(pkg, userId, appUrl, taxEnabled),
-  );
-  return NextResponse.json({ url: checkout.url });
+  try {
+    const checkout = await getStripe().checkout.sessions.create(
+      buildCheckoutParams(pkg, userId, appUrl, taxEnabled),
+    );
+    return NextResponse.json({ url: checkout.url });
+  } catch (e) {
+    console.error("stripe checkout session creation failed", e);
+    return NextResponse.json(
+      { error: "Payment service is temporarily unavailable" },
+      { status: 502 },
+    );
+  }
 }
