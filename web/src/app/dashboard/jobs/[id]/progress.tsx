@@ -7,6 +7,8 @@ type JobEvent = {
   progress: number;
   stage: string;
   error: string | null;
+  queueDepth?: number;
+  etaSeconds?: number;
 };
 
 export function JobProgress({ jobId, initialStatus }: { jobId: string; initialStatus: string }) {
@@ -58,6 +60,11 @@ export function JobProgress({ jobId, initialStatus }: { jobId: string; initialSt
   }
   return (
     <div className="max-w-md rounded-xl border border-zinc-800 p-6">
+      {event.status === "queued" && event.etaSeconds != null && (
+        <p className="mb-2 text-sm text-zinc-400">
+          Waiting in queue — about {Math.max(1, Math.round(event.etaSeconds / 60))} min
+        </p>
+      )}
       <p className="mb-3 font-medium">{event.stage}…</p>
       <div className="h-2 w-full overflow-hidden rounded bg-zinc-800">
         <div

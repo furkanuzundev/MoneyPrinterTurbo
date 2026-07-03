@@ -3,13 +3,26 @@ import type Redis from "ioredis";
 import type { Db } from "@/db";
 import { videoJobs } from "@/db/schema";
 import { refundJob } from "@/lib/credits/ledger";
-import { enqueueSentinelKey, ENGINE_COMPLETE, ENGINE_FAILED, readEngineState } from "./queue";
+import { enqueueSentinelKey, ENGINE_COMPLETE, ENGINE_FAILED, readEngineState, PENDING_KEY } from "./queue";
 
 export type VideoJobRow = typeof videoJobs.$inferSelect;
 
 // Kuyruğa yazılamadan (enqueue öncesi crash) askıda kalan işler için eşik:
 // bu süreden eski + Redis'te izi olmayan queued iş terk edilmiş sayılır.
 export const STUCK_QUEUED_THRESHOLD_MS = 15 * 60 * 1000;
+
+const AVG_RENDER_SECONDS = 120;
+
+export async function queueDepth(redis: Redis): Promise<number> {
+  return redis.llen(PENDING_KEY);
+}
+
+export function estimateEtaSeconds(
+  depth: number,
+  workers = Number(process.env.WORKER_COUNT ?? 2),
+): number {
+  return Math.ceil(depth / Math.max(1, workers)) * AVG_RENDER_SECONDS + AVG_RENDER_SECONDS;
+}
 
 export function stageForProgress(progress: number): string {
   if (progress < 15) return "Preparing";

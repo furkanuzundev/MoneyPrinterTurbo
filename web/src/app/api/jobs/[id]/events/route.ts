@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { videoJobs } from "@/db/schema";
 import { getRedis } from "@/lib/jobs/queue";
-import { stageForProgress, syncJobStatus } from "@/lib/jobs/status";
+import { stageForProgress, syncJobStatus, queueDepth, estimateEtaSeconds } from "@/lib/jobs/status";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +33,20 @@ export async function GET(
         while (!cancelled && Date.now() - startedAt < MAX_LIFETIME_MS) {
           const result = await syncJobStatus(db, redis, id);
           if (!result) break;
+          const depth = await queueDepth(redis);
+          const extra =
+            result.job.status === "queued"
+              ? {
+                  queueDepth: depth,
+                  etaSeconds: estimateEtaSeconds(depth),
+                }
+              : {};
           send({
             status: result.job.status,
             progress: result.progress,
             stage: stageForProgress(result.progress),
             error: result.job.error,
+            ...extra,
           });
           if (result.job.status === "done" || result.job.status === "failed") break;
           await new Promise((r) => setTimeout(r, POLL_MS));
