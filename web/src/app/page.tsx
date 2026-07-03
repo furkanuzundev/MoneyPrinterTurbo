@@ -72,13 +72,15 @@ export default async function Home() {
               return (
                 <Card
                   key={pkg.key}
-                  className={pkg.featured ? "relative border-caption" : "relative"}
+                  className={
+                    pkg.featured
+                      ? "flex flex-col border-caption"
+                      : "flex flex-col"
+                  }
                 >
-                  {pkg.featured && (
-                    <CaptionChip className="absolute -top-3 left-6">
-                      Most popular
-                    </CaptionChip>
-                  )}
+                  <div className="mb-2 h-6">
+                    {pkg.featured && <CaptionChip>Most popular</CaptionChip>}
+                  </div>
                   <div className="text-sm font-semibold text-bone">
                     {pkg.label}
                   </div>
@@ -93,7 +95,7 @@ export default async function Home() {
                   </div>
                   <Link
                     href="/signin"
-                    className={buttonClasses("primary", "mt-6 w-full")}
+                    className={buttonClasses("primary", "mt-auto pt-2 w-full")}
                   >
                     Get {pkg.label}
                   </Link>
@@ -125,7 +127,7 @@ export default async function Home() {
 
 function HeroPreviewCard() {
   return (
-    <div className="relative aspect-[9/16] w-[260px] overflow-hidden rounded-2xl border border-line bg-panel sm:w-[320px]">
+    <div className="relative aspect-[9/16] w-[210px] overflow-hidden rounded-2xl border border-line bg-panel sm:w-[235px]">
       {/* Gerçek Reelate çıktısı: 12 sn'lik sessiz döngü (366 KB) */}
       <video
         className="absolute inset-0 h-full w-full object-cover"
