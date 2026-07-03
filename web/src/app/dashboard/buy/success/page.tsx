@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Card, CaptionChip, buttonClasses } from "@/components/ui";
+import { CaptionChip } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function BuySuccessPage() {
   return (
@@ -10,9 +12,11 @@ export default function BuySuccessPage() {
           Your credits will appear on your dashboard within a few seconds, as soon
           as the payment is confirmed.
         </p>
-        <Link href="/dashboard" className={buttonClasses("primary", "inline-block")}>
-          Back to dashboard
-        </Link>
+        <Button asChild>
+          <Link href="/dashboard" className="inline-block">
+            Back to dashboard
+          </Link>
+        </Button>
       </Card>
     </div>
   );

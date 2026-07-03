@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { buttonClasses } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 
 export function BuyButton({ packageKey }: { packageKey: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <>
-      <button
+      <Button
         disabled={loading}
+        className="mt-6 w-full"
         onClick={async () => {
           setLoading(true);
           setError(null);
@@ -31,11 +32,10 @@ export function BuyButton({ packageKey }: { packageKey: string }) {
             setLoading(false);
           }
         }}
-        className={buttonClasses("primary", "mt-6 w-full")}
       >
         {loading ? "Redirecting…" : "Buy"}
-      </button>
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      </Button>
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </>
   );
 }

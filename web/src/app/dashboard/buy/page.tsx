@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { getPackages } from "@/lib/credits/packages";
-import { Card, CaptionChip } from "@/components/ui";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { BuyButton } from "./buy-button";
 
 export default async function BuyPage() {
@@ -16,12 +17,12 @@ export default async function BuyPage() {
           return (
             <Card
               key={pkg.key}
-              className={pkg.featured ? "relative border border-caption" : "relative border-0"}
+              className={pkg.featured ? "relative ring-2 ring-primary" : "relative border-0"}
             >
               {pkg.featured && (
-                <CaptionChip className="absolute -top-3 left-6">
+                <Badge className="absolute -top-3 left-6">
                   Most popular
-                </CaptionChip>
+                </Badge>
               )}
               <div className="text-sm font-semibold text-bone">{pkg.label}</div>
               <div className="mt-3 font-mono-data text-4xl text-bone">
