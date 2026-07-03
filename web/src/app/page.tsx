@@ -1,11 +1,23 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { getPackages } from "@/lib/credits/packages";
+import {
+  DEFAULT_PACKAGES,
+  getPackages,
+  type CreditPackage,
+} from "@/lib/credits/packages";
 import { Card, CaptionChip, buttonClasses } from "@/components/ui";
 import "./landing.css";
 
 export default async function Home() {
-  const packages = await getPackages(db);
+  // Landing statik prerender edilir; Docker build ortamında DB yoktur.
+  // Fiyat GÖSTERİMİ için varsayılanlara düşmek güvenlidir — gerçek ücret
+  // her zaman checkout anında sunucuda DB'den doğrulanır.
+  let packages: CreditPackage[];
+  try {
+    packages = await getPackages(db);
+  } catch {
+    packages = DEFAULT_PACKAGES;
+  }
 
   return (
     <main className="flex min-h-screen flex-col">
