@@ -21,9 +21,17 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://reelate.co"),
   title: "Reelate — AI Short Video Generator",
   description:
     "Turn any topic into a ready-to-post short video with AI voiceover and subtitles in minutes.",
+  openGraph: {
+    siteName: "Reelate",
+    type: "website",
+    title: "Reelate — AI Short Video Generator",
+    description:
+      "Turn any topic into a ready-to-post short video with AI voiceover and subtitles in minutes.",
+  },
 };
 
 export default function RootLayout({
