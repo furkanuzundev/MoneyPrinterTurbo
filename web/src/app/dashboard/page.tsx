@@ -16,6 +16,11 @@ export default async function DashboardPage() {
         <div className="text-sm text-zinc-400">Credits</div>
         <div className="text-3xl font-bold">{balance}</div>
       </div>
+      <div className="mt-4">
+        <a href="/dashboard/buy" className="text-sm underline">
+          Buy credits
+        </a>
+      </div>
     </div>
   );
 }
