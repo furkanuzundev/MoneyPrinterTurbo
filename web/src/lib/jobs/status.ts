@@ -11,7 +11,7 @@ export type VideoJobRow = typeof videoJobs.$inferSelect;
 // bu süreden eski + Redis'te izi olmayan queued iş terk edilmiş sayılır.
 export const STUCK_QUEUED_THRESHOLD_MS = 15 * 60 * 1000;
 
-const AVG_RENDER_SECONDS = 120;
+const AVG_RENDER_SECONDS = Number(process.env.AVG_RENDER_SECONDS ?? 270);
 
 export async function queueDepth(redis: Redis): Promise<number> {
   return redis.llen(PENDING_KEY);
