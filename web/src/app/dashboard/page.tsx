@@ -12,6 +12,12 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="mb-4 text-2xl font-semibold">Dashboard</h1>
+      <a
+        href="/dashboard/create"
+        className="mb-6 inline-block rounded-lg bg-white px-6 py-2 font-medium text-black hover:bg-zinc-200"
+      >
+        Create a video
+      </a>
       <div className="inline-block rounded-xl border border-zinc-800 px-6 py-4">
         <div className="text-sm text-zinc-400">Credits</div>
         <div className="text-3xl font-bold">{balance}</div>

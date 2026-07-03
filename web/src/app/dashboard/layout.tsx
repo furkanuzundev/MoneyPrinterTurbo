@@ -12,6 +12,11 @@ export default async function DashboardLayout({
     <div className="min-h-screen">
       <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
         <span className="font-semibold">Reelate</span>
+        <nav className="flex items-center gap-4 text-sm text-zinc-400">
+          <a href="/dashboard/create" className="hover:text-white">Create video</a>
+          <a href="/dashboard/library" className="hover:text-white">Library</a>
+          <a href="/dashboard/buy" className="hover:text-white">Buy credits</a>
+        </nav>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-zinc-400">{session.user.email}</span>
           <form
