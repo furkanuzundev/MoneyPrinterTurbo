@@ -14,6 +14,12 @@ RUN npm run build
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+# Next.js standalone server binds to $HOSTNAME if set; Docker auto-sets HOSTNAME
+# to the container ID, which resolves only on one of this container's networks
+# (multi-network setups like this one connect to both `internal` and the
+# external `web` Traefik network) and causes the other network to 502. Force
+# it to listen on all interfaces.
+ENV HOSTNAME=0.0.0.0
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
