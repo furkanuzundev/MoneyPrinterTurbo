@@ -4,22 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CaptionStyle, Scene } from "@/lib/jobs/scenes";
-
-const SIZES: { id: CaptionStyle["size"]; label: string; px: number }[] = [
-  { id: "sm", label: "S", px: 17 },
-  { id: "md", label: "M", px: 23 },
-  { id: "lg", label: "L", px: 30 },
-];
-const POSITIONS: { id: CaptionStyle["position"]; label: string }[] = [
-  { id: "top", label: "Top" },
-  { id: "center", label: "Center" },
-  { id: "bottom", label: "Bottom" },
-];
-const COLORS: { id: CaptionStyle["color"]; label: string; swatch: string }[] = [
-  { id: "yellow", label: "Yellow", swatch: "#F4C63A" },
-  { id: "white", label: "White", swatch: "#FFFFFF" },
-  { id: "none", label: "Plain", swatch: "transparent" },
-];
+import { SIZES, POSITIONS, COLORS, captionPreviewStyles } from "@/lib/jobs/caption-ui";
 
 export function CaptionEditor({
   jobId,
@@ -40,20 +25,7 @@ export function CaptionEditor({
   const [error, setError] = useState<string | null>(null);
 
   const scene = scenes[current] ?? scenes[0];
-  const sizePx = SIZES.find((s) => s.id === style.size)?.px ?? 23;
-
-  const previewPos =
-    style.position === "top"
-      ? { top: 16 }
-      : style.position === "center"
-        ? { top: "50%", transform: "translateY(-50%)" }
-        : { bottom: 60 };
-  const previewColor =
-    style.color === "yellow"
-      ? { background: "#F4C63A", color: "#141208" }
-      : style.color === "white"
-        ? { background: "#fff", color: "#141208" }
-        : { color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.65)" };
+  const { pos: previewPos, color: previewColor, sizePx } = captionPreviewStyles(style);
 
   function patchCurrent(caption: string) {
     setScenes(scenes.map((s, i) => (i === current ? { ...s, caption } : s)));
