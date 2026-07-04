@@ -4,6 +4,14 @@ import { useRef, useState } from "react";
 
 import { creditsForDuration } from "@/lib/credits/pricing";
 import { ASPECTS, DURATION_OPTIONS, LANGUAGES, VOICES } from "@/lib/jobs/options";
+import type { CaptionStyle } from "@/lib/jobs/scenes";
+import {
+  captionPreviewStyles,
+  SIZE_LABEL,
+  POSITION_LABEL,
+  COLOR_LABEL,
+} from "@/lib/jobs/caption-ui";
+import { SubtitleSettings } from "./subtitle-settings";
 
 const ASPECT_META: Record<string, { sub: string; w: number; h: number }> = {
   "9:16": { sub: "TikTok · Reels", w: 20, h: 34 },
@@ -36,11 +44,15 @@ export function BriefStep({
   onChange,
   onGenerate,
   busy,
+  captionStyle,
+  onCaptionChange,
 }: {
   values: BriefValues;
   onChange: (patch: Partial<BriefValues>) => void;
   onGenerate: () => void;
   busy: boolean;
+  captionStyle: CaptionStyle;
+  onCaptionChange: (patch: Partial<CaptionStyle>) => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentUrlRef = useRef<string | null>(null);
@@ -276,6 +288,13 @@ export function BriefStep({
             );
           })}
         </div>
+
+        <div className="my-6 h-px bg-white/5" />
+
+        <label className="mb-[11px] block text-sm font-semibold text-bone">
+          Subtitles
+        </label>
+        <SubtitleSettings value={captionStyle} onChange={onCaptionChange} />
       </div>
 
       {/* Özet paneli */}
@@ -290,9 +309,19 @@ export function BriefStep({
               "repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 12px, rgba(255,255,255,0.06) 12px 24px)",
           }}
         >
-          <div className="absolute bottom-3.5 left-2 right-2 font-display text-xs font-extrabold leading-[1.1] text-white">
-            {values.subject.trim() || "Your topic here"}
-          </div>
+          {(() => {
+            const cp = captionPreviewStyles(captionStyle);
+            return (
+              <div className="absolute left-2 right-2 text-center" style={cp.pos}>
+                <span
+                  className="box-decoration-clone rounded px-1 font-display font-extrabold leading-[1.15]"
+                  style={{ fontSize: Math.round(cp.sizePx * 0.42), ...cp.color }}
+                >
+                  {values.subject.trim() || "Your topic here"}
+                </span>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex flex-col gap-2.5 text-[13.5px]">
           <div className="flex justify-between">
@@ -310,6 +339,12 @@ export function BriefStep({
           <div className="flex justify-between">
             <span className="text-muted/80">Format</span>
             <span className="font-semibold text-bone">{values.aspect}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted/80">Subtitles</span>
+            <span className="font-semibold text-bone">
+              {`${SIZE_LABEL[captionStyle.size]} · ${POSITION_LABEL[captionStyle.position]} · ${COLOR_LABEL[captionStyle.color]}`}
+            </span>
           </div>
         </div>
         <div className="my-[18px] h-px bg-white/5" />
