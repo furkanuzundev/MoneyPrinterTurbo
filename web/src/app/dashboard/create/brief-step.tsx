@@ -311,8 +311,17 @@ export function BriefStep({
         >
           {(() => {
             const cp = captionPreviewStyles(captionStyle);
+            // cp.pos'un mutlak px'i editör önizlemesi ölçeğinde; bu küçük
+            // thumbnail'da (aspect-[9/16] w-28) top/center/bottom'ı ayırt
+            // edilir kılmak için thumbnail-ölçekli konum kullanılır.
+            const thumbPos =
+              captionStyle.position === "top"
+                ? { top: 8 }
+                : captionStyle.position === "center"
+                  ? { top: "50%" as const, transform: "translateY(-50%)" }
+                  : { bottom: 10 };
             return (
-              <div className="absolute left-2 right-2 text-center" style={cp.pos}>
+              <div className="absolute left-2 right-2 text-center" style={thumbPos}>
                 <span
                   className="box-decoration-clone rounded px-1 font-display font-extrabold leading-[1.15]"
                   style={{ fontSize: Math.round(cp.sizePx * 0.42), ...cp.color }}
