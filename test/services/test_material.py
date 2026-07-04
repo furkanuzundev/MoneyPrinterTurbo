@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 from unittest.mock import patch
 
 import requests
@@ -155,7 +156,17 @@ class TestMaterialTlsVerification(unittest.TestCase):
             return f"/tmp/{video_url.rsplit('/', 1)[-1]}"
 
         with (
-            patch.dict(config.app, {"material_directory": ""}),
+            # 只有 pexels 是已配置源:_configured_sources 会混合所有已配置源,
+            # 本机 config.toml 里真实的 pixabay/coverr key 不应影响这个只测
+            # pexels 顺序轮询的用例(否则会发起真实网络请求并打乱顺序断言)。
+            patch.dict(
+                config.app,
+                {
+                    "material_directory": "",
+                    "pixabay_api_keys": [],
+                    "coverr_api_keys": [],
+                },
+            ),
             patch.object(material, "search_videos_pexels", side_effect=fake_search),
             patch.object(material, "save_video", side_effect=fake_save_video),
         ):
@@ -389,6 +400,10 @@ class TestCoverrProvider(unittest.TestCase):
           3. 返回保存路径
         """
         config.app["coverr_api_keys"] = ["coverr-key"]
+        # 确保只有 coverr 是已配置的源,不受本机 config.toml 中真实
+        # pexels/pixabay key 的影响(_configured_sources 会混合所有已配置源)。
+        config.app["pexels_api_keys"] = []
+        config.app["pixabay_api_keys"] = []
         config.app.pop("tls_verify", None)
         config.app.pop("material_directory", None)
         config.proxy.clear()
@@ -424,6 +439,193 @@ class TestCoverrProvider(unittest.TestCase):
 
         # 3. 返回值正确
         self.assertEqual(result, ["/tmp/coverr-saved.mp4"])
+
+
+class ConfiguredSourcesTest(unittest.TestCase):
+    def test_returns_only_sources_with_nonempty_keys(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": [],
+            "coverr_api_keys": ["k3"],
+        }
+        with mock.patch.object(material.config, "app", fake_cfg):
+            self.assertEqual(
+                material._configured_sources(), ["pexels", "coverr"]
+            )
+
+    def test_preferred_source_is_moved_to_front(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": ["k2"],
+            "coverr_api_keys": [],
+        }
+        with mock.patch.object(material.config, "app", fake_cfg):
+            self.assertEqual(
+                material._configured_sources(preferred="pixabay"),
+                ["pixabay", "pexels"],
+            )
+
+    def test_falls_back_to_preferred_when_none_configured(self):
+        fake_cfg = {
+            "pexels_api_keys": [],
+            "pixabay_api_keys": [],
+            "coverr_api_keys": [],
+        }
+        with mock.patch.object(material.config, "app", fake_cfg):
+            self.assertEqual(
+                material._configured_sources(preferred="pexels"), ["pexels"]
+            )
+
+
+class MergeSourcesRoundRobinTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_interleaves_sources_and_skips_exhausted(self):
+        by_source = {
+            "pexels": [self._item("A1"), self._item("A2"), self._item("A3")],
+            "pixabay": [self._item("B1")],
+            "coverr": [self._item("C1"), self._item("C2")],
+        }
+        merged = material._merge_sources_round_robin(by_source)
+        self.assertEqual(
+            [m.url for m in merged], ["A1", "B1", "C1", "A2", "C2", "A3"]
+        )
+
+    def test_deduplicates_by_url_keeping_first(self):
+        by_source = {
+            "pexels": [self._item("X"), self._item("Y")],
+            "pixabay": [self._item("X"), self._item("Z")],
+        }
+        merged = material._merge_sources_round_robin(by_source)
+        self.assertEqual([m.url for m in merged], ["X", "Y", "Z"])
+
+    def test_empty_input_returns_empty(self):
+        self.assertEqual(material._merge_sources_round_robin({}), [])
+
+
+class SearchAllSourcesTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_merges_results_from_multiple_sources(self):
+        with mock.patch.object(
+            material, "search_videos_pexels",
+            return_value=[self._item("A1"), self._item("A2")],
+        ), mock.patch.object(
+            material, "search_videos_pixabay",
+            return_value=[self._item("B1")],
+        ):
+            result = material._search_all_sources(
+                sources=["pexels", "pixabay"],
+                search_term="coffee",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual([m.url for m in result], ["A1", "B1", "A2"])
+
+    def test_source_exception_is_skipped(self):
+        with mock.patch.object(
+            material, "search_videos_pexels",
+            side_effect=RuntimeError("rate limit"),
+        ), mock.patch.object(
+            material, "search_videos_pixabay",
+            return_value=[self._item("B1")],
+        ):
+            result = material._search_all_sources(
+                sources=["pexels", "pixabay"],
+                search_term="coffee",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual([m.url for m in result], ["B1"])
+
+
+class DownloadVideosMultiSourceTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_normal_path_blends_configured_sources(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": ["k2"],
+            "coverr_api_keys": [],
+            "material_directory": "",
+        }
+        saved = []
+        def fake_save(video_url, save_dir):
+            saved.append(video_url)
+            return f"/tmp/{video_url}.mp4"
+
+        with mock.patch.object(material.config, "app", fake_cfg), \
+             mock.patch.object(material, "search_videos_pexels",
+                               return_value=[self._item("A1")]), \
+             mock.patch.object(material, "search_videos_pixabay",
+                               return_value=[self._item("B1")]), \
+             mock.patch.object(material, "save_video", side_effect=fake_save):
+            result = material.download_videos(
+                task_id="multi",
+                search_terms=["coffee"],
+                audio_duration=8,
+                max_clip_duration=5,
+                video_concat_mode="sequential",
+            )
+        # Her iki kaynaktan da klip indirilmiş olmalı
+        self.assertIn("A1", saved)
+        self.assertIn("B1", saved)
+        self.assertEqual(len(result), 2)
+
+
+class ScriptOrderMultiSourceTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_script_order_blends_sources_and_keeps_term_order(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": ["k2"],
+            "coverr_api_keys": [],
+            "material_directory": "",
+        }
+        # term1 -> pexels A1 + pixabay B1 ; term2 -> pexels A2
+        def pexels_search(search_term, minimum_duration, video_aspect):
+            return {"t1": [self._item("A1")], "t2": [self._item("A2")]}[search_term]
+        def pixabay_search(search_term, minimum_duration, video_aspect):
+            return {"t1": [self._item("B1")], "t2": []}[search_term]
+
+        saved = []
+        def fake_save(video_url, save_dir):
+            saved.append(video_url)
+            return f"/tmp/{video_url}.mp4"
+
+        with mock.patch.object(material.config, "app", fake_cfg), \
+             mock.patch.object(material, "search_videos_pexels",
+                               side_effect=pexels_search), \
+             mock.patch.object(material, "search_videos_pixabay",
+                               side_effect=pixabay_search), \
+             mock.patch.object(material, "save_video", side_effect=fake_save):
+            result = material.download_videos(
+                task_id="order",
+                search_terms=["t1", "t2"],
+                audio_duration=20,
+                max_clip_duration=5,
+                match_script_order=True,
+            )
+        # İlk tur her terimin 1. adayı: t1->A1, t2->A2 ; sonra t1->B1
+        self.assertEqual(saved, ["A1", "A2", "B1"])
+        self.assertEqual(len(result), 3)
 
 
 if __name__ == "__main__":

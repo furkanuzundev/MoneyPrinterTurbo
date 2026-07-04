@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 import threading
 import time
 import uuid
@@ -401,6 +402,107 @@ def _download_candidates_parallel(
     return video_paths
 
 
+# Fonksiyon İSİMLERİ tutulur; çağrı anında bu modülden getattr ile çözülür.
+# Böylece testlerin patch.object(material, "search_videos_pexels") yaması
+# arama sırasında görünür kalır (statik referans yaması kaçırırdı).
+_SOURCE_SEARCH_FUNC_NAMES = {
+    "pexels": "search_videos_pexels",
+    "pixabay": "search_videos_pixabay",
+    "coverr": "search_videos_coverr",
+}
+
+
+def _resolve_search_func(source: str):
+    name = _SOURCE_SEARCH_FUNC_NAMES.get(source)
+    if name is None:
+        return None
+    return getattr(sys.modules[__name__], name, None)
+
+
+_SOURCE_KEY_NAMES = {
+    "pexels": "pexels_api_keys",
+    "pixabay": "pixabay_api_keys",
+    "coverr": "coverr_api_keys",
+}
+
+
+def _configured_sources(preferred: str | None = None) -> List[str]:
+    """API key'i yapılandırılmış kaynakları döndürür.
+
+    preferred verilmişse ve yapılandırılmışsa listenin başına alınır.
+    Hiçbir kaynak yapılandırılmamışsa preferred'ı (yoksa 'pexels')
+    tek elemanlı liste olarak döndürür; gerçek 'key yok' hatası indirme
+    anında get_api_key tarafından üretilir.
+    """
+    ordered = ["pexels", "pixabay", "coverr"]
+    if preferred in ordered:
+        ordered = [preferred] + [s for s in ordered if s != preferred]
+
+    configured = []
+    for src in ordered:
+        keys = config.app.get(_SOURCE_KEY_NAMES[src])
+        if keys:
+            configured.append(src)
+
+    if configured:
+        return configured
+    return [preferred or "pexels"]
+
+
+def _merge_sources_round_robin(results_by_source: dict) -> List:
+    """Kaynak listelerini round-robin serpiştirir, url bazında tekilleştirir.
+
+    dict ekleme sırası kaynak önceliğini belirler (ör. pexels ilk sırada
+    ise her turda önce ondan alınır). Biten kaynak atlanır.
+    """
+    lists = [items for items in results_by_source.values() if items]
+    merged = []
+    seen_urls = set()
+    index = 0
+    while any(index < len(lst) for lst in lists):
+        for lst in lists:
+            if index >= len(lst):
+                continue
+            item = lst[index]
+            if item.url in seen_urls:
+                continue
+            seen_urls.add(item.url)
+            merged.append(item)
+        index += 1
+    return merged
+
+
+def _search_all_sources(
+    sources: List[str],
+    search_term: str,
+    minimum_duration: int,
+    video_aspect: VideoAspect,
+) -> List:
+    """Verilen kaynakları tek terim için sorgular, round-robin harmanlar.
+
+    Bir kaynak exception atarsa loglanıp atlanır; diğerleri devam eder.
+    """
+    results_by_source = {}
+    for src in sources:
+        search_fn = _resolve_search_func(src)
+        if search_fn is None:
+            continue
+        try:
+            items = search_fn(
+                search_term=search_term,
+                minimum_duration=minimum_duration,
+                video_aspect=video_aspect,
+            )
+        except Exception as e:
+            logger.warning(
+                f"source '{src}' failed for term '{search_term}': {str(e)}"
+            )
+            continue
+        if items:
+            results_by_source[src] = items
+    return _merge_sources_round_robin(results_by_source)
+
+
 def download_videos(
     task_id: str,
     search_terms: List[str],
@@ -411,11 +513,8 @@ def download_videos(
     max_clip_duration: int = 5,
     match_script_order: bool = False,
 ) -> List[str]:
-    search_videos = search_videos_pexels
-    if source == "pixabay":
-        search_videos = search_videos_pixabay
-    elif source == "coverr":
-        search_videos = search_videos_coverr
+    sources = _configured_sources(preferred=source)
+    logger.info(f"downloading from sources: {sources}")
 
     material_directory = config.app.get("material_directory", "").strip()
     if material_directory == "task":
@@ -427,7 +526,7 @@ def download_videos(
         return _download_videos_by_script_order(
             task_id=task_id,
             search_terms=search_terms,
-            search_videos=search_videos,
+            sources=sources,
             video_aspect=video_aspect,
             audio_duration=audio_duration,
             max_clip_duration=max_clip_duration,
@@ -438,7 +537,8 @@ def download_videos(
     valid_video_urls = []
     found_duration = 0.0
     for search_term in search_terms:
-        video_items = search_videos(
+        video_items = _search_all_sources(
+            sources=sources,
             search_term=search_term,
             minimum_duration=max_clip_duration,
             video_aspect=video_aspect,
@@ -474,7 +574,7 @@ def download_videos(
 def _download_videos_by_script_order(
     task_id: str,
     search_terms: List[str],
-    search_videos,
+    sources: List[str],
     video_aspect: VideoAspect,
     audio_duration: float,
     max_clip_duration: int,
@@ -490,16 +590,21 @@ def _download_videos_by_script_order(
     这样在不重写视频合成引擎的前提下，尽量保证素材顺序贴近文案顺序。
     """
     logger.info("downloading videos with script-order material matching")
+
+    def _search(term):
+        return _search_all_sources(
+            sources=sources,
+            search_term=term,
+            minimum_duration=max_clip_duration,
+            video_aspect=video_aspect,
+        )
+
     candidate_groups = []
     valid_video_urls = set()
     found_duration = 0.0
 
     for search_term in search_terms:
-        video_items = search_videos(
-            search_term=search_term,
-            minimum_duration=max_clip_duration,
-            video_aspect=video_aspect,
-        )
+        video_items = _search(search_term)
         logger.info(f"found {len(video_items)} videos for '{search_term}'")
 
         term_items = []
