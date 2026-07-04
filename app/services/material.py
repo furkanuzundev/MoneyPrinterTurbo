@@ -449,6 +449,29 @@ def _configured_sources(preferred: str | None = None) -> List[str]:
     return [preferred or "pexels"]
 
 
+def _merge_sources_round_robin(results_by_source: dict) -> List:
+    """Kaynak listelerini round-robin serpiştirir, url bazında tekilleştirir.
+
+    dict ekleme sırası kaynak önceliğini belirler (ör. pexels ilk sırada
+    ise her turda önce ondan alınır). Biten kaynak atlanır.
+    """
+    lists = [items for items in results_by_source.values() if items]
+    merged = []
+    seen_urls = set()
+    index = 0
+    while any(index < len(lst) for lst in lists):
+        for lst in lists:
+            if index >= len(lst):
+                continue
+            item = lst[index]
+            if item.url in seen_urls:
+                continue
+            seen_urls.add(item.url)
+            merged.append(item)
+        index += 1
+    return merged
+
+
 def download_videos(
     task_id: str,
     search_terms: List[str],

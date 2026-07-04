@@ -463,5 +463,35 @@ class ConfiguredSourcesTest(unittest.TestCase):
             )
 
 
+class MergeSourcesRoundRobinTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_interleaves_sources_and_skips_exhausted(self):
+        by_source = {
+            "pexels": [self._item("A1"), self._item("A2"), self._item("A3")],
+            "pixabay": [self._item("B1")],
+            "coverr": [self._item("C1"), self._item("C2")],
+        }
+        merged = material._merge_sources_round_robin(by_source)
+        self.assertEqual(
+            [m.url for m in merged], ["A1", "B1", "C1", "A2", "C2", "A3"]
+        )
+
+    def test_deduplicates_by_url_keeping_first(self):
+        by_source = {
+            "pexels": [self._item("X"), self._item("Y")],
+            "pixabay": [self._item("X"), self._item("Z")],
+        }
+        merged = material._merge_sources_round_robin(by_source)
+        self.assertEqual([m.url for m in merged], ["X", "Y", "Z"])
+
+    def test_empty_input_returns_empty(self):
+        self.assertEqual(material._merge_sources_round_robin({}), [])
+
+
 if __name__ == "__main__":
     unittest.main()
