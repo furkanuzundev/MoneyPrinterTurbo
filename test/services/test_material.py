@@ -156,7 +156,17 @@ class TestMaterialTlsVerification(unittest.TestCase):
             return f"/tmp/{video_url.rsplit('/', 1)[-1]}"
 
         with (
-            patch.dict(config.app, {"material_directory": ""}),
+            # 只有 pexels 是已配置源:_configured_sources 会混合所有已配置源,
+            # 本机 config.toml 里真实的 pixabay/coverr key 不应影响这个只测
+            # pexels 顺序轮询的用例(否则会发起真实网络请求并打乱顺序断言)。
+            patch.dict(
+                config.app,
+                {
+                    "material_directory": "",
+                    "pixabay_api_keys": [],
+                    "coverr_api_keys": [],
+                },
+            ),
             patch.object(material, "search_videos_pexels", side_effect=fake_search),
             patch.object(material, "save_video", side_effect=fake_save_video),
         ):
