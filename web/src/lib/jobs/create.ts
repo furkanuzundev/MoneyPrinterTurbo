@@ -9,6 +9,7 @@ import { enqueueJob } from "./queue";
 import {
   DEFAULT_CAPTION_STYLE,
   engineSubtitleParams,
+  sanitizeCaptionStyle,
   sanitizeScenes,
   type Scene,
 } from "./scenes";
@@ -29,6 +30,7 @@ export async function createVideoJob(
     script: string;
     terms: string[];
     scenes?: unknown;
+    captionStyle?: unknown;
     aspect: string;
     voice: string;
     targetSeconds: number;
@@ -67,7 +69,8 @@ export async function createVideoJob(
 
   // Kredi düşme + iş kaydı tek transaction (2a). Enqueue bunun DIŞINDA:
   // Redis düşerse iade + failed işaretleme yapılır; kredi asla havada kalmaz.
-  const captionStyle = scenes.length > 0 ? DEFAULT_CAPTION_STYLE : null;
+  const captionStyle =
+    scenes.length > 0 ? sanitizeCaptionStyle(input.captionStyle) : null;
   const { jobId } = await spendCreditsForJob(db, userId, {
     subject,
     script,

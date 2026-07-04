@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       script: String(body.script ?? ""),
       terms: Array.isArray(body.terms) ? body.terms : [],
       scenes: body.scenes,
+      captionStyle: body.captionStyle,
       aspect: String(body.aspect ?? ""),
       voice: String(body.voice ?? ""),
       targetSeconds: Number(body.targetSeconds ?? 60),
