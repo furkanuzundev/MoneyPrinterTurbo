@@ -18,6 +18,8 @@ const JOB = {
   subject: "morning habits",
   script: "drink water move your body write one goal",
   terms: ["morning", "coffee"],
+  scenes: null,
+  captionStyle: null,
   aspect: "9:16",
   voice: "en-US-JennyNeural-Female",
   targetSeconds: 60,

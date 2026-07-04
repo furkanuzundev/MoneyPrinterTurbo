@@ -25,6 +25,8 @@ beforeEach(async () => {
     subject: "s",
     script: "drink water",
     terms: ["a"],
+    scenes: null,
+    captionStyle: null,
     aspect: "9:16",
     voice: "en-US-JennyNeural-Female",
     targetSeconds: 30,
