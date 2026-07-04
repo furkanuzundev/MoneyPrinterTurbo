@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  creditsForDuration,
-  estimateDurationSeconds,
-} from "@/lib/credits/pricing";
+import { creditsForDuration } from "@/lib/credits/pricing";
 import { VOICES } from "@/lib/jobs/options";
 import { scriptFromScenes, type Scene } from "@/lib/jobs/scenes";
 import { formatDuration } from "@/lib/jobs/display";
@@ -20,7 +17,7 @@ export function Wizard({ balance }: { balance: number }) {
   const [step, setStep] = useState(1);
   const [brief, setBrief] = useState<BriefValues>({
     subject: "",
-    language: "en",
+    language: "en-US",
     voice: VOICES[0].id,
     aspect: "9:16",
     targetSeconds: 60,
@@ -33,10 +30,7 @@ export function Wizard({ balance }: { balance: number }) {
   const [error, setError] = useState<string | null>(null);
 
   const script = scriptFromScenes(scenes);
-  const credits =
-    scenes.length > 0
-      ? Math.max(1, creditsForDuration(estimateDurationSeconds(script)))
-      : creditsForDuration(brief.targetSeconds);
+  const credits = creditsForDuration(brief.targetSeconds);
 
   async function generateScript() {
     setBusy("script");
@@ -77,6 +71,7 @@ export function Wizard({ balance }: { balance: number }) {
           terms,
           aspect: brief.aspect,
           voice: brief.voice,
+          targetSeconds: brief.targetSeconds,
         }),
       });
       const data = await res.json();
@@ -117,13 +112,25 @@ export function Wizard({ balance }: { balance: number }) {
         </div>
       )}
 
-      <div>
-        <h1 className="mb-1.5 font-display text-3xl font-extrabold tracking-[-0.02em] text-bone lg:text-[34px]">
-          Create a video
-        </h1>
-        <p className="text-[15.5px] text-muted">
-          One sentence in, a ready-to-post short out.
-        </p>
+      <div className="flex items-start gap-3">
+        {step > 1 && (
+          <button
+            type="button"
+            onClick={() => setStep((s) => Math.max(1, s - 1))}
+            aria-label="Go back"
+            className="mt-1 flex h-9 w-9 flex-none items-center justify-center rounded-full border border-white/10 text-muted transition-colors hover:border-white/25 hover:text-bone"
+          >
+            ←
+          </button>
+        )}
+        <div>
+          <h1 className="mb-1.5 font-display text-3xl font-extrabold tracking-[-0.02em] text-bone lg:text-[34px]">
+            Create a video
+          </h1>
+          <p className="text-[15.5px] text-muted">
+            One sentence in, a ready-to-post short out.
+          </p>
+        </div>
       </div>
 
       <StepIndicator
@@ -146,6 +153,7 @@ export function Wizard({ balance }: { balance: number }) {
           scenes={scenes}
           voice={brief.voice}
           aspect={brief.aspect}
+          targetSeconds={brief.targetSeconds}
           balance={balance}
           busy={busy}
           onScenesChange={setScenes}
@@ -160,7 +168,7 @@ export function Wizard({ balance }: { balance: number }) {
           jobId={jobId}
           title={brief.subject}
           aspect={brief.aspect}
-          duration={`~${formatDuration(estimateDurationSeconds(script))}`}
+          duration={`~${formatDuration(brief.targetSeconds)}`}
           initialStatus="queued"
           creditsLeft={Math.max(0, balance - credits)}
           captionsHref={`/dashboard/videos/${jobId}/captions`}

@@ -251,6 +251,37 @@ class TestTaskService(unittest.TestCase):
         create_subtitle.assert_not_called()
         whisper_create.assert_not_called()
 
+    def test_generate_scene_subtitle_uses_voiceover_not_caption(self):
+        """
+        Sahne modu fallback altyazısı (sub_maker yok) konuşulan voiceover
+        metnini yazmalı — ekrandaki caption başlığını değil.
+        """
+        from app.models.schema import SceneItem
+
+        tmp = tempfile.mkdtemp()
+        try:
+            params = VideoParams(
+                video_subject="puding",
+                video_script="Malzemeleri hazırlıyoruz. Karıştırıyoruz.",
+                subtitle_enabled=True,
+                scenes=[
+                    SceneItem(caption="Hazırlık!", voiceover="Malzemeleri hazırlıyoruz."),
+                    SceneItem(caption="Karıştır!", voiceover="Karıştırıyoruz."),
+                ],
+            )
+            with patch.object(tm.utils, "task_dir", return_value=tmp):
+                srt_path = tm.generate_scene_subtitle("t1", params, audio_duration=6.0)
+
+            with open(srt_path, encoding="utf-8") as f:
+                content = f.read()
+
+            self.assertIn("Malzemeleri hazırlıyoruz.", content)
+            self.assertIn("Karıştırıyoruz.", content)
+            self.assertNotIn("Hazırlık!", content)
+            self.assertNotIn("Karıştır!", content)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     @unittest.skipUnless(
         RUN_INTEGRATION_TESTS,
         "MPT_RUN_INTEGRATION_TESTS not set",
@@ -297,7 +328,63 @@ class TestTaskService(unittest.TestCase):
         )
         result = tm.start(task_id=task_id, params=params)
         print(result)
-    
+
+    def test_start_scene_mode_prefers_word_boundary_subtitle(self):
+        """
+        Scene modunda sub_maker mevcutsa, altyazı kelime-sınır yolundan
+        (generate_subtitle) üretilmeli; coarse scene fallback kullanılmamalı.
+        """
+        from app.models.schema import SceneItem
+
+        params = VideoParams(
+            video_subject="puding",
+            video_script="Malzemeleri hazırlıyoruz. Karıştırıyoruz.",
+            subtitle_enabled=True,
+            video_source="local",
+            scenes=[
+                SceneItem(caption="Hazırlık!", voiceover="Malzemeleri hazırlıyoruz."),
+                SceneItem(caption="Karıştır!", voiceover="Karıştırıyoruz."),
+            ],
+        )
+
+        sentinel_sub_maker = object()
+
+        with patch.object(tm, "generate_script", return_value=params.video_script), \
+             patch.object(tm, "generate_audio",
+                          return_value=("audio.mp3", 6, sentinel_sub_maker)), \
+             patch.object(tm, "generate_subtitle", return_value="word.srt") as gsub, \
+             patch.object(tm, "generate_scene_subtitle", return_value="scene.srt") as gscene:
+            result = tm.start("t2", params, stop_at="subtitle")
+
+        gsub.assert_called_once()
+        gscene.assert_not_called()
+        self.assertEqual(result["subtitle_path"], "word.srt")
+
+    def test_start_scene_mode_falls_back_when_no_sub_maker(self):
+        """
+        sub_maker yoksa (özel ses) scene fallback devreye girer.
+        """
+        from app.models.schema import SceneItem
+
+        params = VideoParams(
+            video_subject="puding",
+            video_script="Malzemeleri hazırlıyoruz.",
+            subtitle_enabled=True,
+            video_source="local",
+            scenes=[SceneItem(caption="Hazırlık!", voiceover="Malzemeleri hazırlıyoruz.")],
+        )
+
+        with patch.object(tm, "generate_script", return_value=params.video_script), \
+             patch.object(tm, "generate_audio",
+                          return_value=("audio.mp3", 6, None)), \
+             patch.object(tm, "generate_subtitle", return_value="word.srt") as gsub, \
+             patch.object(tm, "generate_scene_subtitle", return_value="scene.srt") as gscene:
+            result = tm.start("t3", params, stop_at="subtitle")
+
+        gscene.assert_called_once()
+        gsub.assert_not_called()
+        self.assertEqual(result["subtitle_path"], "scene.srt")
+
 
 if __name__ == "__main__":
     unittest.main()

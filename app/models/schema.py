@@ -155,6 +155,11 @@ class AudioRequest(BaseModel):
     video_source: Optional[str] = "local"
 
 
+class VoicePreviewRequest(BaseModel):
+    voice_name: str
+    text: Optional[str] = None
+
+
 class VideoScriptParams:
     """
     {

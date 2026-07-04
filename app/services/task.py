@@ -258,7 +258,9 @@ def generate_scene_subtitle(task_id, params, audio_duration):
         else:
             share = len(scene.voiceover.strip()) / total_chars
             end = min(current + max(int(audio_100ns * share), 1), audio_100ns)
-        text = (scene.caption or scene.voiceover).strip()
+        # Altyazı her zaman konuşulan metni gösterir; caption sadece ekran
+        # başlığıdır ve SRT'ye sızmamalıdır.
+        text = scene.voiceover.strip()
         start_t = voice.mktimestamp(current).replace(".", ",")
         end_t = voice.mktimestamp(end).replace(".", ",")
         items.append(f"{idx + 1}\n{start_t} --> {end_t}\n{text}\n")
@@ -486,7 +488,11 @@ def start(task_id, params: VideoParams, stop_at: str = "video"):
         return {"audio_file": audio_file, "audio_duration": audio_duration}
 
     # 4. Generate subtitle
-    if getattr(params, "scenes", None):
+    # Scene modunda da öncelik kelime-sınır yolundadır: sub_maker (edge-tts
+    # zaman çizelgesi) varsa altyazı konuşmayla senkron akar ve metin
+    # voiceover'dan gelir (video_script = birleşik voiceover). sub_maker yoksa
+    # (özel ses) coarse scene fallback'e düşeriz — o da voiceover metnini yazar.
+    if getattr(params, "scenes", None) and sub_maker is None:
         subtitle_path = generate_scene_subtitle(task_id, params, audio_duration)
     else:
         subtitle_path = generate_subtitle(

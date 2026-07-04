@@ -16,7 +16,43 @@ function getOpenAI(): OpenAI {
   return client;
 }
 
-const LANGUAGE_NAMES: Record<string, string> = { en: "English", tr: "Turkish" };
+// Locale kodu → İngilizce dil adı (LLM prompt'unda kullanılır). Hem tam
+// locale (tr-TR) hem eski kısa kodlar (tr) desteklenir. Bilinmeyen kod
+// çağıran tarafta "English"e düşer.
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  tr: "Turkish",
+  "en-US": "English",
+  "en-GB": "English",
+  "tr-TR": "Turkish",
+  "es-ES": "Spanish",
+  "es-MX": "Spanish",
+  "de-DE": "German",
+  "fr-FR": "French",
+  "pt-BR": "Portuguese",
+  "it-IT": "Italian",
+  "ru-RU": "Russian",
+  "ar-SA": "Arabic",
+  "zh-CN": "Chinese",
+  "ja-JP": "Japanese",
+  "ko-KR": "Korean",
+  "hi-IN": "Hindi",
+  "nl-NL": "Dutch",
+  "pl-PL": "Polish",
+  "sv-SE": "Swedish",
+  "id-ID": "Indonesian",
+  "vi-VN": "Vietnamese",
+  "th-TH": "Thai",
+  "uk-UA": "Ukrainian",
+  "ro-RO": "Romanian",
+  "el-GR": "Greek",
+  "cs-CZ": "Czech",
+  "he-IL": "Hebrew",
+  "da-DK": "Danish",
+  "fi-FI": "Finnish",
+  "nb-NO": "Norwegian",
+  "fa-IR": "Persian",
+};
 
 export function buildScriptPrompt(
   subject: string,

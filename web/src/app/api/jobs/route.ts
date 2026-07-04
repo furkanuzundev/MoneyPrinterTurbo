@@ -18,6 +18,7 @@ export async function POST(request: Request) {
       scenes: body.scenes,
       aspect: String(body.aspect ?? ""),
       voice: String(body.voice ?? ""),
+      targetSeconds: Number(body.targetSeconds ?? 60),
     });
     return NextResponse.json(result);
   } catch (e) {

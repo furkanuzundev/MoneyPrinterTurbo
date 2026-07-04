@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { LANGUAGES } from "@/lib/jobs/options";
 import { getRedis } from "@/lib/jobs/queue";
 import { generateScenesAndTerms } from "@/lib/script/generate";
 
@@ -33,7 +34,9 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const subject = String(body.subject ?? "").trim().slice(0, 300);
-  const language = ["en", "tr"].includes(body.language) ? body.language : "en";
+  const language = LANGUAGES.some((l) => l.code === body.language)
+    ? String(body.language)
+    : "en-US";
   const targetSeconds = [30, 60, 90, 180].includes(Number(body.targetSeconds))
     ? Number(body.targetSeconds)
     : 60;
