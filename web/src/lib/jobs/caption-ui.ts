@@ -13,12 +13,6 @@ export const POSITIONS: { id: CaptionStyle["position"]; label: string }[] = [
   { id: "bottom", label: "Bottom" },
 ];
 
-export const COLORS: { id: CaptionStyle["color"]; label: string; swatch: string }[] = [
-  { id: "yellow", label: "Yellow", swatch: "#F4C63A" },
-  { id: "white", label: "White", swatch: "#FFFFFF" },
-  { id: "none", label: "Plain", swatch: "transparent" },
-];
-
 export const SIZE_LABEL: Record<CaptionStyle["size"], string> = {
   sm: "S",
   md: "M",
@@ -29,11 +23,34 @@ export const POSITION_LABEL: Record<CaptionStyle["position"], string> = {
   center: "Center",
   bottom: "Bottom",
 };
-export const COLOR_LABEL: Record<CaptionStyle["color"], string> = {
-  yellow: "Yellow",
-  white: "White",
-  none: "Plain",
-};
+
+export const TEXT_COLOR_PRESETS: { label: string; hex: string }[] = [
+  { label: "White", hex: "#FFFFFF" },
+  { label: "Black", hex: "#141208" },
+  { label: "Yellow", hex: "#F4C63A" },
+  { label: "Red", hex: "#E5484D" },
+  { label: "Cyan", hex: "#33C9D6" },
+];
+
+export const BG_COLOR_PRESETS: { label: string; hex: string | "none" }[] = [
+  { label: "None", hex: "none" },
+  { label: "Yellow", hex: "#F4C63A" },
+  { label: "White", hex: "#FFFFFF" },
+  { label: "Black", hex: "#141208" },
+  { label: "Blue", hex: "#2B6CF4" },
+];
+
+// Bir hex/none için insan-okur kısa etiket: preset ise adı, değilse hex'in
+// kendisi (palet seçimi). Özet satırlarında kullanılır.
+export function colorLabel(
+  value: string,
+  presets: { label: string; hex: string | "none" }[],
+): string {
+  return (
+    presets.find((p) => p.hex.toLowerCase() === value.toLowerCase())?.label ??
+    value
+  );
+}
 
 // captions/editor.tsx içindeki satır içi previewPos/previewColor/sizePx mantığının
 // tek fonksiyona taşınmış hâli. Editör ölçekli px değerleri döndürür; küçük
@@ -50,11 +67,9 @@ export function captionPreviewStyles(style: CaptionStyle): {
         ? { top: "50%", transform: "translateY(-50%)" }
         : { bottom: 60 };
   const color: CSSProperties =
-    style.color === "yellow"
-      ? { background: "#F4C63A", color: "#141208" }
-      : style.color === "white"
-        ? { background: "#fff", color: "#141208" }
-        : { color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.65)" };
+    style.bgColor === "none"
+      ? { color: style.textColor, textShadow: "0 2px 12px rgba(0,0,0,0.65)" }
+      : { color: style.textColor, background: style.bgColor };
   const sizePx = SIZES.find((s) => s.id === style.size)?.px ?? 23;
   return { pos, color, sizePx };
 }
