@@ -130,9 +130,17 @@ describe("syncJobStatus", () => {
 
 describe("stageForProgress", () => {
   it("maps ranges to labels", () => {
-    expect(stageForProgress(5)).toBe("Preparing");
-    expect(stageForProgress(30)).toBe("Gathering footage");
-    expect(stageForProgress(80)).toBe("Rendering");
-    expect(stageForProgress(97)).toBe("Finishing");
+    expect(stageForProgress(5)).toBe("Writing the script");
+    expect(stageForProgress(30)).toBe("Generating voiceover");
+    expect(stageForProgress(80)).toBe("Burning in captions");
+    expect(stageForProgress(97)).toBe("Rendering your short");
+  });
+  it("maps each threshold boundary to the right stage", () => {
+    expect(stageForProgress(0)).toBe("Writing the script");
+    expect(stageForProgress(15)).toBe("Generating voiceover");
+    expect(stageForProgress(35)).toBe("Matching stock footage");
+    expect(stageForProgress(60)).toBe("Burning in captions");
+    expect(stageForProgress(90)).toBe("Rendering your short");
+    expect(stageForProgress(100)).toBe("Rendering your short");
   });
 });
