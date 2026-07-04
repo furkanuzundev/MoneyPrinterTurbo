@@ -65,14 +65,13 @@ describe("createVideoJob", () => {
       ...INPUT,
       script: "",
       scenes: [{ caption: "Hi!", voiceover: "Hello there." }],
-      captionStyle: { size: "lg", position: "top", color: "white" },
+      captionStyle: { size: "lg", position: "top", textColor: "#FFFFFF", bgColor: "none" },
     });
     const payload = JSON.parse((await redis.rpop(PENDING_KEY))!);
-    // engineSubtitleParams mapping: lg->76, top->"top", white->fore #141208 / bg #FFFFFF
     expect(payload.params.subtitle_position).toBe("top");
     expect(payload.params.font_size).toBe(76);
-    expect(payload.params.text_fore_color).toBe("#141208");
-    expect(payload.params.text_background_color).toBe("#FFFFFF");
+    expect(payload.params.text_fore_color).toBe("#FFFFFF");
+    expect(payload.params.text_background_color).toBe(false);
   });
   it("falls back to the default caption style when none is provided", async () => {
     await createVideoJob(db, redis, userId, {
@@ -82,9 +81,9 @@ describe("createVideoJob", () => {
       // captionStyle omitted
     });
     const payload = JSON.parse((await redis.rpop(PENDING_KEY))!);
-    // DEFAULT_CAPTION_STYLE: md->60, bottom, yellow-> fore #141208 / bg #F4C63A
     expect(payload.params.subtitle_position).toBe("bottom");
     expect(payload.params.font_size).toBe(60);
+    expect(payload.params.text_fore_color).toBe("#141208");
     expect(payload.params.text_background_color).toBe("#F4C63A");
   });
   it("prices longer target lengths higher", async () => {

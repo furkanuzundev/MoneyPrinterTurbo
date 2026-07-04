@@ -106,7 +106,8 @@ export const videoJobs = pgTable("video_jobs", {
   captionStyle: jsonb("caption_style").$type<{
     size: "sm" | "md" | "lg";
     position: "top" | "center" | "bottom";
-    color: "yellow" | "white" | "none";
+    textColor: string;
+    bgColor: string;
   }>(),
   aspect: text("aspect").notNull().default("9:16"),
   voice: text("voice").notNull(),
