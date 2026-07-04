@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CaptionStyle, Scene } from "@/lib/jobs/scenes";
-import { SIZES, POSITIONS, COLORS, captionPreviewStyles } from "@/lib/jobs/caption-ui";
+import {
+  SIZES,
+  POSITIONS,
+  TEXT_COLOR_PRESETS,
+  BG_COLOR_PRESETS,
+  captionPreviewStyles,
+} from "@/lib/jobs/caption-ui";
+import { ColorAxis } from "@/components/subtitle/color-axis";
 
 export function CaptionEditor({
   jobId,
@@ -157,28 +164,21 @@ export function CaptionEditor({
             </div>
           </div>
 
-          <label className="mb-2 mt-[22px] block text-[13px] font-semibold text-bone">
-            Caption style
-          </label>
-          <div className="flex gap-[9px]">
-            {COLORS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setStyle({ ...style, color: c.id })}
-                className={`flex items-center gap-[9px] rounded-[10px] border px-3 py-[9px] text-[13px] font-semibold transition-colors ${
-                  style.color === c.id
-                    ? "border-caption bg-caption/10 text-bone"
-                    : "border-white/10 bg-[#0E0C08] text-muted hover:text-bone"
-                }`}
-              >
-                <span
-                  className="h-3.5 w-3.5 rounded-full border border-white/25"
-                  style={{ background: c.swatch }}
-                />
-                {c.label}
-              </button>
-            ))}
+          <div className="mt-[22px]">
+            <ColorAxis
+              label="Text color"
+              presets={TEXT_COLOR_PRESETS}
+              value={style.textColor}
+              onChange={(v) => setStyle({ ...style, textColor: v })}
+            />
+          </div>
+          <div className="mt-[18px]">
+            <ColorAxis
+              label="Background color"
+              presets={BG_COLOR_PRESETS}
+              value={style.bgColor}
+              onChange={(v) => setStyle({ ...style, bgColor: v })}
+            />
           </div>
 
           <div className="my-6 h-px bg-white/5" />
