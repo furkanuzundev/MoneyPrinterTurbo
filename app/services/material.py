@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 import threading
 import time
 import uuid
@@ -399,6 +400,53 @@ def _download_candidates_parallel(
                 video_paths.append(saved_video_path)
                 total_duration += min(max_clip_duration, item.duration)
     return video_paths
+
+
+# Fonksiyon İSİMLERİ tutulur; çağrı anında bu modülden getattr ile çözülür.
+# Böylece testlerin patch.object(material, "search_videos_pexels") yaması
+# arama sırasında görünür kalır (statik referans yaması kaçırırdı).
+_SOURCE_SEARCH_FUNC_NAMES = {
+    "pexels": "search_videos_pexels",
+    "pixabay": "search_videos_pixabay",
+    "coverr": "search_videos_coverr",
+}
+
+
+def _resolve_search_func(source: str):
+    name = _SOURCE_SEARCH_FUNC_NAMES.get(source)
+    if name is None:
+        return None
+    return getattr(sys.modules[__name__], name, None)
+
+
+_SOURCE_KEY_NAMES = {
+    "pexels": "pexels_api_keys",
+    "pixabay": "pixabay_api_keys",
+    "coverr": "coverr_api_keys",
+}
+
+
+def _configured_sources(preferred: str | None = None) -> List[str]:
+    """API key'i yapılandırılmış kaynakları döndürür.
+
+    preferred verilmişse ve yapılandırılmışsa listenin başına alınır.
+    Hiçbir kaynak yapılandırılmamışsa preferred'ı (yoksa 'pexels')
+    tek elemanlı liste olarak döndürür; gerçek 'key yok' hatası indirme
+    anında get_api_key tarafından üretilir.
+    """
+    ordered = ["pexels", "pixabay", "coverr"]
+    if preferred in ordered:
+        ordered = [preferred] + [s for s in ordered if s != preferred]
+
+    configured = []
+    for src in ordered:
+        keys = config.app.get(_SOURCE_KEY_NAMES[src])
+        if keys:
+            configured.append(src)
+
+    if configured:
+        return configured
+    return [preferred or "pexels"]
 
 
 def download_videos(

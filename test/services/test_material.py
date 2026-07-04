@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 from unittest.mock import patch
 
 import requests
@@ -424,6 +425,42 @@ class TestCoverrProvider(unittest.TestCase):
 
         # 3. 返回值正确
         self.assertEqual(result, ["/tmp/coverr-saved.mp4"])
+
+
+class ConfiguredSourcesTest(unittest.TestCase):
+    def test_returns_only_sources_with_nonempty_keys(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": [],
+            "coverr_api_keys": ["k3"],
+        }
+        with mock.patch.object(material.config, "app", fake_cfg):
+            self.assertEqual(
+                material._configured_sources(), ["pexels", "coverr"]
+            )
+
+    def test_preferred_source_is_moved_to_front(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": ["k2"],
+            "coverr_api_keys": [],
+        }
+        with mock.patch.object(material.config, "app", fake_cfg):
+            self.assertEqual(
+                material._configured_sources(preferred="pixabay"),
+                ["pixabay", "pexels"],
+            )
+
+    def test_falls_back_to_preferred_when_none_configured(self):
+        fake_cfg = {
+            "pexels_api_keys": [],
+            "pixabay_api_keys": [],
+            "coverr_api_keys": [],
+        }
+        with mock.patch.object(material.config, "app", fake_cfg):
+            self.assertEqual(
+                material._configured_sources(preferred="pexels"), ["pexels"]
+            )
 
 
 if __name__ == "__main__":
