@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { creditsForDuration } from "@/lib/credits/pricing";
 import { VOICES } from "@/lib/jobs/options";
-import { scriptFromScenes, type Scene } from "@/lib/jobs/scenes";
+import { scriptFromScenes, type Scene, DEFAULT_CAPTION_STYLE, type CaptionStyle } from "@/lib/jobs/scenes";
 import { formatDuration } from "@/lib/jobs/display";
 import { JobLive } from "@/components/dashboard/job-live";
 import { StepIndicator } from "./step-indicator";
@@ -24,6 +24,7 @@ export function Wizard({ balance }: { balance: number }) {
   });
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [terms, setTerms] = useState<string[]>([]);
+  const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobDone, setJobDone] = useState(false);
   const [busy, setBusy] = useState<"script" | "job" | null>(null);
@@ -72,6 +73,7 @@ export function Wizard({ balance }: { balance: number }) {
           aspect: brief.aspect,
           voice: brief.voice,
           targetSeconds: brief.targetSeconds,
+          captionStyle,
         }),
       });
       const data = await res.json();
@@ -144,6 +146,8 @@ export function Wizard({ balance }: { balance: number }) {
           onChange={(patch) => setBrief((b) => ({ ...b, ...patch }))}
           onGenerate={generateScript}
           busy={busy === "script"}
+          captionStyle={captionStyle}
+          onCaptionChange={(patch) => setCaptionStyle((s) => ({ ...s, ...patch }))}
         />
       )}
 
@@ -171,7 +175,6 @@ export function Wizard({ balance }: { balance: number }) {
           duration={`~${formatDuration(brief.targetSeconds)}`}
           initialStatus="queued"
           creditsLeft={Math.max(0, balance - credits)}
-          captionsHref={`/dashboard/videos/${jobId}/captions`}
           onDone={() => setJobDone(true)}
         />
       )}
