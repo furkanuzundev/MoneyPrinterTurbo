@@ -5,11 +5,13 @@ import type { CaptionStyle } from "@/lib/jobs/scenes";
 import {
   SIZES,
   POSITIONS,
-  COLORS,
   SIZE_LABEL,
   POSITION_LABEL,
-  COLOR_LABEL,
+  TEXT_COLOR_PRESETS,
+  BG_COLOR_PRESETS,
+  colorLabel,
 } from "@/lib/jobs/caption-ui";
+import { ColorAxis } from "@/components/subtitle/color-axis";
 
 export function SubtitleSettings({
   value,
@@ -19,7 +21,7 @@ export function SubtitleSettings({
   onChange: (patch: Partial<CaptionStyle>) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const summary = `${SIZE_LABEL[value.size]} · ${POSITION_LABEL[value.position]} · ${COLOR_LABEL[value.color]}`;
+  const summary = `${SIZE_LABEL[value.size]} · ${POSITION_LABEL[value.position]} · T:${colorLabel(value.textColor, TEXT_COLOR_PRESETS)} · BG:${colorLabel(value.bgColor, BG_COLOR_PRESETS)}`;
 
   return (
     <div className="rounded-[13px] border border-white/10 bg-[#0E0C08]">
@@ -78,28 +80,22 @@ export function SubtitleSettings({
             ))}
           </div>
 
-          <label className="mb-2 mt-[18px] block text-[13px] font-semibold text-bone">
-            Caption style
-          </label>
-          <div className="flex flex-wrap gap-[9px]">
-            {COLORS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onChange({ color: c.id })}
-                className={`flex items-center gap-[9px] rounded-[10px] border px-3 py-[9px] text-[13px] font-semibold transition-colors ${
-                  value.color === c.id
-                    ? "border-caption bg-caption/10 text-bone"
-                    : "border-white/10 bg-[#141310] text-muted hover:text-bone"
-                }`}
-              >
-                <span
-                  className="h-3.5 w-3.5 rounded-full border border-white/25"
-                  style={{ background: c.swatch }}
-                />
-                {c.label}
-              </button>
-            ))}
+          <div className="mt-[18px]">
+            <ColorAxis
+              label="Text color"
+              presets={TEXT_COLOR_PRESETS}
+              value={value.textColor}
+              onChange={(v) => onChange({ textColor: v })}
+            />
+          </div>
+
+          <div className="mt-[18px]">
+            <ColorAxis
+              label="Background color"
+              presets={BG_COLOR_PRESETS}
+              value={value.bgColor}
+              onChange={(v) => onChange({ bgColor: v })}
+            />
           </div>
         </div>
       )}
