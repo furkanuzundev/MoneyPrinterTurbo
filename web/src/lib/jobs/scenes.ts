@@ -62,10 +62,12 @@ export function sanitizeCaptionStyle(input: unknown): CaptionStyle {
     ? (String(obj.position) as CaptionStyle["position"])
     : DEFAULT_CAPTION_STYLE.position;
 
-  // Yeni alanlar yoksa ama eski color varsa: migrasyon.
-  const hasNew = obj.textColor !== undefined || obj.bgColor !== undefined;
+  // Eski color varsa migrasyon eşlemesini hazırla. Per-eksen "yeni değer
+  // varsa o kazanır, yoksa legacy, yoksa default" sırası uygulanır; böylece
+  // kısmi/karışık kayıtlarda ({color:"none", textColor:"#00FF00"} gibi) her
+  // iki eksen de doğru çözülür — biri yeni, diğeri legacy'den dolar.
   const legacy =
-    !hasNew && typeof obj.color === "string" && obj.color in LEGACY_COLOR_MAP
+    typeof obj.color === "string" && obj.color in LEGACY_COLOR_MAP
       ? LEGACY_COLOR_MAP[obj.color]
       : null;
 

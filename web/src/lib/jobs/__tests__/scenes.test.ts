@@ -60,6 +60,12 @@ describe("sanitizeCaptionStyle (old-format migration)", () => {
     expect(s.textColor).toBe("#00FF00");
     expect(s.bgColor).toBe("none");
   });
+  it("fills the missing axis from legacy when the record is mixed/partial", () => {
+    // Yeni textColor var ama bgColor yok; legacy color="none" bg eksenini doldurmalı.
+    const s = sanitizeCaptionStyle({ color: "none", textColor: "#00ff00" });
+    expect(s.textColor).toBe("#00FF00"); // yeni değer kazanır
+    expect(s.bgColor).toBe("none"); // legacy'den dolar (default #F4C63A değil)
+  });
 });
 
 describe("engineSubtitleParams", () => {
