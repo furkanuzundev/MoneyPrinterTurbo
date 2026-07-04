@@ -29,6 +29,11 @@ edge_tts_timeout = 30
 # 只有在企业代理或自签证书环境明确需要时，才临时改为 false。
 tls_verify = true
 
+# Video materyalleri, API key'i doldurulmuş TÜM kaynaklardan (Pexels,
+# Pixabay, Coverr) round-robin harmanla çekilir; böylece topic'e daha
+# çeşitli klip havuzu oluşur. Bir kaynağın key'i boşsa o kaynak sessizce
+# atlanır. video_source yalnızca tercih edilen (ilk denenecek) kaynağı belirtir.
+
 # Pexels API Key
 # Register at https://www.pexels.com/api/ to get your API key.
 # You can use multiple keys to avoid rate limits.
