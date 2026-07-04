@@ -390,6 +390,10 @@ class TestCoverrProvider(unittest.TestCase):
           3. 返回保存路径
         """
         config.app["coverr_api_keys"] = ["coverr-key"]
+        # 确保只有 coverr 是已配置的源,不受本机 config.toml 中真实
+        # pexels/pixabay key 的影响(_configured_sources 会混合所有已配置源)。
+        config.app["pexels_api_keys"] = []
+        config.app["pixabay_api_keys"] = []
         config.app.pop("tls_verify", None)
         config.app.pop("material_directory", None)
         config.proxy.clear()
