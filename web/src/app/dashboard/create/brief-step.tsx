@@ -9,7 +9,9 @@ import {
   captionPreviewStyles,
   SIZE_LABEL,
   POSITION_LABEL,
-  COLOR_LABEL,
+  colorLabel,
+  TEXT_COLOR_PRESETS,
+  BG_COLOR_PRESETS,
 } from "@/lib/jobs/caption-ui";
 import { SubtitleSettings } from "./subtitle-settings";
 
@@ -352,7 +354,7 @@ export function BriefStep({
           <div className="flex justify-between">
             <span className="text-muted/80">Subtitles</span>
             <span className="font-semibold text-bone">
-              {`${SIZE_LABEL[captionStyle.size]} · ${POSITION_LABEL[captionStyle.position]} · ${COLOR_LABEL[captionStyle.color]}`}
+              {`${SIZE_LABEL[captionStyle.size]} · ${POSITION_LABEL[captionStyle.position]} · T:${colorLabel(captionStyle.textColor, TEXT_COLOR_PRESETS)} · BG:${colorLabel(captionStyle.bgColor, BG_COLOR_PRESETS)}`}
             </span>
           </div>
         </div>
