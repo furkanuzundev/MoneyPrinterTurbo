@@ -575,5 +575,48 @@ class DownloadVideosMultiSourceTest(unittest.TestCase):
         self.assertEqual(len(result), 2)
 
 
+class ScriptOrderMultiSourceTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_script_order_blends_sources_and_keeps_term_order(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": ["k2"],
+            "coverr_api_keys": [],
+            "material_directory": "",
+        }
+        # term1 -> pexels A1 + pixabay B1 ; term2 -> pexels A2
+        def pexels_search(search_term, minimum_duration, video_aspect):
+            return {"t1": [self._item("A1")], "t2": [self._item("A2")]}[search_term]
+        def pixabay_search(search_term, minimum_duration, video_aspect):
+            return {"t1": [self._item("B1")], "t2": []}[search_term]
+
+        saved = []
+        def fake_save(video_url, save_dir):
+            saved.append(video_url)
+            return f"/tmp/{video_url}.mp4"
+
+        with mock.patch.object(material.config, "app", fake_cfg), \
+             mock.patch.object(material, "search_videos_pexels",
+                               side_effect=pexels_search), \
+             mock.patch.object(material, "search_videos_pixabay",
+                               side_effect=pixabay_search), \
+             mock.patch.object(material, "save_video", side_effect=fake_save):
+            result = material.download_videos(
+                task_id="order",
+                search_terms=["t1", "t2"],
+                audio_duration=20,
+                max_clip_duration=5,
+                match_script_order=True,
+            )
+        # İlk tur her terimin 1. adayı: t1->A1, t2->A2 ; sonra t1->B1
+        self.assertEqual(saved, ["A1", "A2", "B1"])
+        self.assertEqual(len(result), 3)
+
+
 if __name__ == "__main__":
     unittest.main()
