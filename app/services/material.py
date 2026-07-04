@@ -472,6 +472,37 @@ def _merge_sources_round_robin(results_by_source: dict) -> List:
     return merged
 
 
+def _search_all_sources(
+    sources: List[str],
+    search_term: str,
+    minimum_duration: int,
+    video_aspect: VideoAspect,
+) -> List:
+    """Verilen kaynakları tek terim için sorgular, round-robin harmanlar.
+
+    Bir kaynak exception atarsa loglanıp atlanır; diğerleri devam eder.
+    """
+    results_by_source = {}
+    for src in sources:
+        search_fn = _resolve_search_func(src)
+        if search_fn is None:
+            continue
+        try:
+            items = search_fn(
+                search_term=search_term,
+                minimum_duration=minimum_duration,
+                video_aspect=video_aspect,
+            )
+        except Exception as e:
+            logger.warning(
+                f"source '{src}' failed for term '{search_term}': {str(e)}"
+            )
+            continue
+        if items:
+            results_by_source[src] = items
+    return _merge_sources_round_robin(results_by_source)
+
+
 def download_videos(
     task_id: str,
     search_terms: List[str],

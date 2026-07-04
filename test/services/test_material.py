@@ -493,5 +493,45 @@ class MergeSourcesRoundRobinTest(unittest.TestCase):
         self.assertEqual(material._merge_sources_round_robin({}), [])
 
 
+class SearchAllSourcesTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_merges_results_from_multiple_sources(self):
+        with mock.patch.object(
+            material, "search_videos_pexels",
+            return_value=[self._item("A1"), self._item("A2")],
+        ), mock.patch.object(
+            material, "search_videos_pixabay",
+            return_value=[self._item("B1")],
+        ):
+            result = material._search_all_sources(
+                sources=["pexels", "pixabay"],
+                search_term="coffee",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual([m.url for m in result], ["A1", "B1", "A2"])
+
+    def test_source_exception_is_skipped(self):
+        with mock.patch.object(
+            material, "search_videos_pexels",
+            side_effect=RuntimeError("rate limit"),
+        ), mock.patch.object(
+            material, "search_videos_pixabay",
+            return_value=[self._item("B1")],
+        ):
+            result = material._search_all_sources(
+                sources=["pexels", "pixabay"],
+                search_term="coffee",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual([m.url for m in result], ["B1"])
+
+
 if __name__ == "__main__":
     unittest.main()
