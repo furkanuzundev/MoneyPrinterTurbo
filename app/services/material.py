@@ -513,11 +513,8 @@ def download_videos(
     max_clip_duration: int = 5,
     match_script_order: bool = False,
 ) -> List[str]:
-    search_videos = search_videos_pexels
-    if source == "pixabay":
-        search_videos = search_videos_pixabay
-    elif source == "coverr":
-        search_videos = search_videos_coverr
+    sources = _configured_sources(preferred=source)
+    logger.info(f"downloading from sources: {sources}")
 
     material_directory = config.app.get("material_directory", "").strip()
     if material_directory == "task":
@@ -529,7 +526,7 @@ def download_videos(
         return _download_videos_by_script_order(
             task_id=task_id,
             search_terms=search_terms,
-            search_videos=search_videos,
+            sources=sources,
             video_aspect=video_aspect,
             audio_duration=audio_duration,
             max_clip_duration=max_clip_duration,
@@ -540,7 +537,8 @@ def download_videos(
     valid_video_urls = []
     found_duration = 0.0
     for search_term in search_terms:
-        video_items = search_videos(
+        video_items = _search_all_sources(
+            sources=sources,
             search_term=search_term,
             minimum_duration=max_clip_duration,
             video_aspect=video_aspect,
@@ -576,7 +574,7 @@ def download_videos(
 def _download_videos_by_script_order(
     task_id: str,
     search_terms: List[str],
-    search_videos,
+    sources: List[str],
     video_aspect: VideoAspect,
     audio_duration: float,
     max_clip_duration: int,
@@ -592,16 +590,21 @@ def _download_videos_by_script_order(
     这样在不重写视频合成引擎的前提下，尽量保证素材顺序贴近文案顺序。
     """
     logger.info("downloading videos with script-order material matching")
+
+    def _search(term):
+        return _search_all_sources(
+            sources=sources,
+            search_term=term,
+            minimum_duration=max_clip_duration,
+            video_aspect=video_aspect,
+        )
+
     candidate_groups = []
     valid_video_urls = set()
     found_duration = 0.0
 
     for search_term in search_terms:
-        video_items = search_videos(
-            search_term=search_term,
-            minimum_duration=max_clip_duration,
-            video_aspect=video_aspect,
-        )
+        video_items = _search(search_term)
         logger.info(f"found {len(video_items)} videos for '{search_term}'")
 
         term_items = []

@@ -533,5 +533,43 @@ class SearchAllSourcesTest(unittest.TestCase):
         self.assertEqual([m.url for m in result], ["B1"])
 
 
+class DownloadVideosMultiSourceTest(unittest.TestCase):
+    def _item(self, url):
+        m = material.MaterialInfo()
+        m.url = url
+        m.duration = 5
+        return m
+
+    def test_normal_path_blends_configured_sources(self):
+        fake_cfg = {
+            "pexels_api_keys": ["k1"],
+            "pixabay_api_keys": ["k2"],
+            "coverr_api_keys": [],
+            "material_directory": "",
+        }
+        saved = []
+        def fake_save(video_url, save_dir):
+            saved.append(video_url)
+            return f"/tmp/{video_url}.mp4"
+
+        with mock.patch.object(material.config, "app", fake_cfg), \
+             mock.patch.object(material, "search_videos_pexels",
+                               return_value=[self._item("A1")]), \
+             mock.patch.object(material, "search_videos_pixabay",
+                               return_value=[self._item("B1")]), \
+             mock.patch.object(material, "save_video", side_effect=fake_save):
+            result = material.download_videos(
+                task_id="multi",
+                search_terms=["coffee"],
+                audio_duration=8,
+                max_clip_duration=5,
+                video_concat_mode="sequential",
+            )
+        # Her iki kaynaktan da klip indirilmiş olmalı
+        self.assertIn("A1", saved)
+        self.assertIn("B1", saved)
+        self.assertEqual(len(result), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
