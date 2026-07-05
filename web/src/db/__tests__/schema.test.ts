@@ -18,4 +18,14 @@ describe("schema", () => {
       expect(names).toContain(t);
     }
   });
+
+  it("has admin panel columns", async () => {
+    const cols = await db.execute(
+      sql`SELECT table_name, column_name FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND ((table_name = 'user' AND column_name = 'created_at')
+              OR (table_name = 'credit_ledger' AND column_name = 'note'))`,
+    );
+    expect(cols.rows).toHaveLength(2);
+  });
 });
