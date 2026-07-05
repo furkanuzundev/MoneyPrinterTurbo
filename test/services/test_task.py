@@ -385,6 +385,31 @@ class TestTaskService(unittest.TestCase):
         gsub.assert_not_called()
         self.assertEqual(result["subtitle_path"], "scene.srt")
 
+    def test_start_uploads_outputs_to_storage(self):
+        """Render bitince final/combined/audio bucket'a put edilmeli."""
+        params = VideoParams(video_subject="x", video_script="bir cümle.", video_source="local")
+        put_calls = []
+
+        class FakeStorage:
+            def put(self, local, key):
+                put_calls.append(key)
+
+        with patch.object(tm, "generate_script", return_value="bir cümle."), \
+             patch.object(tm, "generate_terms", return_value="x"), \
+             patch.object(tm, "save_script_data"), \
+             patch.object(tm, "generate_audio", return_value=("audio.mp3", 3.0, object())), \
+             patch.object(tm, "generate_subtitle", return_value="sub.srt"), \
+             patch.object(tm, "get_video_materials", return_value=["m.mp4"]), \
+             patch.object(tm, "generate_final_videos",
+                          return_value=(["/t/tasks/id/final-1.mp4"], ["/t/tasks/id/combined-1.mp4"])), \
+             patch.object(tm.sto, "get_storage", return_value=FakeStorage()), \
+             patch.object(tm.sm.state, "update_task"):
+            tm.start("id", params)
+
+        self.assertIn("tasks/id/final-1.mp4", put_calls)
+        self.assertIn("tasks/id/combined-1.mp4", put_calls)
+        self.assertIn("tasks/id/audio.mp3", put_calls)
+
 
 if __name__ == "__main__":
     unittest.main()

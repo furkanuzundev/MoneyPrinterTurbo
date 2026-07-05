@@ -10,6 +10,7 @@ from app.models import const
 from app.models.schema import VideoConcatMode, VideoParams
 from app.services import llm, material, subtitle, twelvelabs, video, voice, upload_post
 from app.services import state as sm
+from app.services import storage as sto
 from app.utils import file_security, utils
 
 
@@ -542,6 +543,15 @@ def start(task_id, params: VideoParams, stop_at: str = "video"):
     if not final_video_paths:
         sm.state.update_task(task_id, state=const.TASK_STATE_FAILED)
         return
+
+    # Çıktıları ve rerender için gereken ara dosyaları bucket'a yükle.
+    # (LocalStorage'da bu no-op benzeri: kaynak==hedef ise kopya atlanır.)
+    store = sto.get_storage()
+    for fp in final_video_paths:
+        store.put(fp, f"tasks/{task_id}/{path.basename(fp)}")
+    for cp in combined_video_paths:
+        store.put(cp, f"tasks/{task_id}/{path.basename(cp)}")
+    store.put(audio_file, f"tasks/{task_id}/audio.mp3")
 
     logger.success(
         f"task {task_id} finished, generated {len(final_video_paths)} videos."
