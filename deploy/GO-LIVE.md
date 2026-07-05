@@ -55,7 +55,18 @@ cd web && npm test && npx tsc --noEmit && cd ..
 git add deploy && git commit -m "feat(deploy): add python api service for voice preview"
 ```
 
-## 2. Kodu sunucuya taşı (rsync — GitHub kullanılmıyor)
+## 2. Kodu sunucuya taşı
+
+> **GÜNCEL (2026-07-06): Deploy artık otomatik.** `main`'e push → CI testleri
+> geçerse `.github/workflows/deploy.yml` sunucudaki `/opt/reelate/deploy.sh`'i
+> tetikler (git pull + `docker compose up -d --build`). Sunucuda
+> `/opt/reelate/src` artık bir git clone'u; SSH deploy anahtarı forced-command
+> ile sadece bu script'i çalıştırabilir (GitHub secret: `DEPLOY_SSH_KEY`).
+> Migration otomatik DEĞİL — şema değişikliğinde adım 5'teki migration
+> komutunu deploy'dan ÖNCE manuel çalıştır. Aşağıdaki rsync yöntemi yalnızca
+> acil durum/ilk kurulum referansı olarak duruyor.
+
+### (Eski yöntem) rsync ile
 
 ```bash
 # NOT: '/storage' (kök-sabitli) — sadece kökteki runtime data dizinini hariç tutar.

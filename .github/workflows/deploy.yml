@@ -1,0 +1,33 @@
+name: Deploy
+
+# main'e push -> CI (testler) yesil biterse prod'a deploy.
+# SSH anahtari forced-command'li: sunucuda YALNIZCA /opt/reelate/deploy.sh
+# calistirabilir (git pull + docker compose up -d --build).
+# Migration icermez: sema degisikliginde GO-LIVE.md adim 5 manuel uygulanir.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Host key sabitlenmis (TOFU/MITM riskine karsi runtime keyscan yok)
+          echo "116.203.145.5 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICoPO4CQyL4C3Fu5G/8+Ab95bl7B0JvFxegPpA8KBzKy" >> ~/.ssh/known_hosts
+
+      - name: Deploy to production
+        run: ssh root@116.203.145.5 deploy
