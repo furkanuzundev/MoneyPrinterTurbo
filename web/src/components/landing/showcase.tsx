@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 
-// Her kart bir Reelate çıktısına karşılık gelir. Videolar
-// public/showcase/showcase-{1,2,3}.mp4 (+ .jpg poster) olarak beklenir;
-// scripts/render-showcase.mjs bunları üretir. Dosya henüz yoksa kart,
-// stilize placeholder arka planına düşer (bölüm yine de yayınlanabilir).
+// Her kart bir Reelate çıktısıdır. Videolar public/showcase/showcase-{1,2,3}.mp4
+// (+ .jpg poster) olarak beklenir. Videolarda burned-in altyazı zaten var, o
+// yüzden kart yalnızca videoyu + küçük bir meta etiketini gösterir. Dosya yoksa
+// kart stilize placeholder arka planına düşer (bölüm yine de yayınlanabilir).
 type ShowcaseItem = {
-  title: ReactNode;
   meta: string;
   offset: boolean;
   src: string;
@@ -16,39 +15,19 @@ type ShowcaseItem = {
 
 const SHOWCASE_ITEMS: ShowcaseItem[] = [
   {
-    title: (
-      <>
-        3 ChatGPT prompts that{" "}
-        <mark className="bg-caption px-1 text-caption-ink">save me hours</mark>
-      </>
-    ),
-    meta: "productivity · 0:42",
+    meta: "wellness · 0:40",
     offset: false,
     src: "/showcase/showcase-1.mp4",
     poster: "/showcase/showcase-1.jpg",
   },
   {
-    title: (
-      <>
-        Why you&apos;re{" "}
-        <mark className="bg-caption px-1 text-caption-ink">always tired</mark>{" "}
-        at 3pm
-      </>
-    ),
-    meta: "health · 0:36",
+    meta: "morning routine · 0:25",
     offset: true,
     src: "/showcase/showcase-2.mp4",
     poster: "/showcase/showcase-2.jpg",
   },
   {
-    title: (
-      <>
-        5 books that{" "}
-        <mark className="bg-caption px-1 text-caption-ink">rewired</mark> how I
-        think
-      </>
-    ),
-    meta: "books · 0:48",
+    meta: "social growth · 0:55",
     offset: false,
     src: "/showcase/showcase-3.mp4",
     poster: "/showcase/showcase-3.jpg",
@@ -102,11 +81,8 @@ function ShowcaseCard({ item }: { item: ShowcaseItem }) {
           onError={() => setFailed(true)}
         />
       ) : null}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-      <div className="pointer-events-none absolute bottom-11 left-3.5 right-3.5 font-display text-[23px] font-extrabold leading-[1.1] text-white [text-shadow:0_3px_12px_rgba(0,0,0,0.6)]">
-        {item.title}
-      </div>
-      <div className="pointer-events-none absolute bottom-4 left-3.5 font-mono-data text-[11px] text-bone/90">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+      <div className="pointer-events-none absolute bottom-3.5 left-3.5 rounded-md bg-black/40 px-2 py-1 font-mono-data text-[11px] text-bone/90 backdrop-blur-sm">
         {item.meta}
       </div>
     </div>
