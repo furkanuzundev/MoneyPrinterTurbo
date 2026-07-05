@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
-const STATUSES = ["queued", "script", "downloading", "rendering", "done", "failed"] as const;
+const STATUSES = ["queued", "rendering", "done", "failed"] as const;
 
 function badgeVariant(status: string): "default" | "secondary" | "destructive" {
   if (status === "failed") return "destructive";

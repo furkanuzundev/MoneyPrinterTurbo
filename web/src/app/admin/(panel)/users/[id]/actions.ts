@@ -21,7 +21,7 @@ export async function adjustCreditsAction(
   if (!(await verifySessionToken(token))) return { error: "Yetkisiz." };
 
   const delta = Number(formData.get("delta"));
-  const note = String(formData.get("note") ?? "");
+  const note = String(formData.get("note") ?? "").slice(0, 200);
   if (!Number.isInteger(delta) || delta === 0) {
     return { error: "Miktar sıfır olmayan bir tam sayı olmalı." };
   }

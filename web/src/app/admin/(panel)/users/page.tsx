@@ -15,7 +15,8 @@ export default async function AdminUsersPage({
 }) {
   const params = await searchParams;
   const q = params.q ?? "";
-  const page = Math.max(1, Number(params.page) || 1);
+  const rawPage = Number(params.page);
+  const page = Number.isFinite(rawPage) ? Math.min(100_000, Math.max(1, Math.trunc(rawPage))) : 1;
   const { rows, total } = await listUsers(db, { q, page, pageSize: PAGE_SIZE });
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 

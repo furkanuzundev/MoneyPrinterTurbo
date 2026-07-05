@@ -90,7 +90,7 @@ Middleware, `admin.reelate.org` host'unu `/admin/*` route'larına yönlendirir.
    ADMIN_USERNAME=<kullanıcı-adı>
    ADMIN_PASSWORD_HASH=<script çıktısı>
    ```
-4. Admin panel kodu `main` branch'ine merge edilince, GitHub Actions workflow otomatik olarak tetiklenir (CI yeşil olunca `/opt/reelate/deploy.sh` çalıştırılır: `cd /opt/reelate/src && git pull && docker compose -f deploy/docker-compose.prod.yml up -d --build`). Migration çalıştırılması gerekiyorsa (0003 migration'ı `user.created_at`, `credit_ledger.note` kolonlarını ekler ve created_at backfill yapar), sunucuda İlk kurulum 6. adımındaki komutun aynısını çalıştır:
+4. **ÖNEMLİ — migration sırası:** Admin panel kodu `main` branch'ine merge/push edilir edilmez GitHub Actions workflow otomatik tetiklenir ve CI yeşil olur olmaz `/opt/reelate/deploy.sh` ÇALIŞIR (`cd /opt/reelate/src && git pull && docker compose -f deploy/docker-compose.prod.yml up -d --build`) — yani yeni kod anında prod'a çıkar. 0003 migration'ı (`user.created_at`, `credit_ledger.note` kolonlarını ekler ve created_at backfill yapar) bu merge'den ÖNCE prod DB'ye uygulanmış olmalı. Aksi halde NextAuth drizzle adapter henüz var olmayan `user.created_at` kolonunu seçmeye çalışır ve bu, sadece admin panelini değil, sitedeki Google girişini de (tüm kullanıcılar için) kırar. Migration tamamen additive olduğundan, merge'den önce erkenden uygulamak çalışan eski kod için güvenlidir. Migration'ı önceden uygulamak için sunucuda İlk kurulum (ana sunucu) 6. adımındaki komutun aynısını çalıştır:
    `docker run --rm --network reelate_internal -v /opt/reelate/src/web:/w -w /w node:22-alpine sh -c "npm install -g npm@11.6.2 && npm ci && DATABASE_URL=postgres://reelate:<pw>@reelate-db:5432/reelate npm run db:migrate"`
 
 ### Smoke test
