@@ -121,7 +121,9 @@ REELATE_DB_PASSWORD=$PW docker compose -f deploy/docker-compose.prod.yml up -d -
 - `/signin` 200, `/use-cases/ai-tiktok-video-generator` 200, `/sitemap.xml` reelate.org URL'leri
 - `/terms` ve `/privacy` 200
 - Worker: `docker compose ... logs worker | tail` → "waiting for jobs"
-- API: `docker exec reelate-web sh -c "wget -qO- http://reelate-api:8080/ping || true"` (motor /ping endpoint'i)
+- API: `docker exec reelate-web sh -c "wget -qO- http://reelate-api:8080/docs | grep -o '<title>[^<]*</title>'"`
+  → Swagger UI title döner (uvicorn ayakta). NOT: motorda `/ping` route'u router'a bağlı DEĞİL (404);
+  gerçek proxy hedefi `/api/v1/voice/preview` (boş gövdeyle 400 = route var demektir).
 - Monitor: `docker logs reelate-monitor --tail 3` → "monitor redis target: reelate-cache", hata yok
 - Uçtan uca video: `docker compose -f deploy/docker-compose.prod.yml exec -T worker \
   uv run --no-sync python -m worker.enqueue --subject "go-live smoke" \
