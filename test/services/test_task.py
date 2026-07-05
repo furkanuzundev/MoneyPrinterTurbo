@@ -410,6 +410,42 @@ class TestTaskService(unittest.TestCase):
         self.assertIn("tasks/id/combined-1.mp4", put_calls)
         self.assertIn("tasks/id/audio.mp3", put_calls)
 
+    def test_rerender_downloads_sources_and_uploads_final(self):
+        params = VideoParams(video_subject="x", video_script="c.")
+        got, put = [], []
+        task_dir = utils.task_dir("rid")
+
+        class FakeStorage:
+            def exists(self, key):
+                return True
+            def get(self, key, local):
+                got.append(key)
+                # indirme simülasyonu: hedef dosyayı oluştur
+                os.makedirs(os.path.dirname(local), exist_ok=True)
+                with open(local, "w") as f:
+                    f.write("x")
+            def put(self, local, key):
+                put.append(key)
+
+        def fake_generate(**kwargs):
+            with open(kwargs["output_file"], "w") as f:
+                f.write("v")
+
+        try:
+            with patch.object(tm.sto, "get_storage", return_value=FakeStorage()), \
+                 patch.object(tm.voice, "get_audio_duration", return_value=3.0), \
+                 patch.object(tm, "generate_scene_subtitle", return_value="sub.srt"), \
+                 patch.object(tm.video, "generate_video", side_effect=fake_generate), \
+                 patch.object(tm.sm.state, "update_task"):
+                result = tm.rerender("rid", params)
+
+            self.assertIn("tasks/rid/combined-1.mp4", got)
+            self.assertIn("tasks/rid/audio.mp3", got)
+            self.assertIn("tasks/rid/final-1.mp4", put)
+            self.assertTrue(result["videos"][0].endswith("final-1.mp4"))
+        finally:
+            shutil.rmtree(task_dir, ignore_errors=True)
+
 
 if __name__ == "__main__":
     unittest.main()
