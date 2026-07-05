@@ -21,7 +21,6 @@ export function JobLive({
   duration,
   initialStatus,
   creditsLeft,
-  captionsHref,
   onDone,
 }: {
   jobId: string;
@@ -30,7 +29,6 @@ export function JobLive({
   duration: string;
   initialStatus: string;
   creditsLeft?: number;
-  captionsHref?: string | null;
   onDone?: () => void;
 }) {
   const [event, setEvent] = useState<JobEvent>({
@@ -79,7 +77,6 @@ export function JobLive({
         aspect={aspect}
         duration={duration}
         creditsLeft={creditsLeft}
-        captionsHref={captionsHref}
       />
     );
   }
@@ -155,14 +152,12 @@ function DoneView({
   aspect,
   duration,
   creditsLeft,
-  captionsHref,
 }: {
   jobId: string;
   title: string;
   aspect: string;
   duration: string;
   creditsLeft?: number;
-  captionsHref?: string | null;
 }) {
   return (
     <div className="grid items-center gap-9 pb-8 pt-4 lg:grid-cols-[280px_1fr]">
@@ -201,21 +196,6 @@ function DoneView({
           >
             ↓ Download MP4
           </a>
-          {captionsHref ? (
-            <Link
-              href={captionsHref}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-[13px] text-[15px] font-semibold text-bone transition-colors hover:border-white/30"
-            >
-              ✎ Edit captions
-            </Link>
-          ) : (
-            <span
-              title="Caption editing is only available for scene-based videos"
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/10 px-5 py-[13px] text-[15px] font-semibold text-muted/50"
-            >
-              ✎ Edit captions
-            </span>
-          )}
         </div>
 
         <div className="mb-2 mt-6 font-mono-data text-[11px] uppercase tracking-[0.06em] text-muted/70">
