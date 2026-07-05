@@ -12,6 +12,13 @@
    S3 backend için ayrıca: `storage_backend="s3"` ve `s3_endpoint`, `s3_bucket`,
    `s3_region`, `s3_access_key`, `s3_secret_key` anahtarlarını doldur — önce
    Hetzner Console'da bucket + S3 credential (access/secret key) oluştur.
+
+   > **S3'e geçiş (cutover) notu:** Eğer daha önce local backend'de video üretildiyse,
+   > bu dosyalar bucket'ta YOKTUR; s3'e geçtikten sonra eski işlerin videoları
+   > oynatılamaz (web var olmayan bucket key'ini presign eder, 404). Geçişten ÖNCE
+   > mevcut videoları bucket'a bir kez taşı:
+   > `aws s3 sync /opt/reelate/storage/tasks/ s3://<bucket>/tasks/ --endpoint-url <s3_endpoint>`
+   > (veya rclone). Bu adım atlanırsa yalnızca geçiş sonrası üretilen videolar oynatılır.
 5. `docker compose -f deploy/docker-compose.prod.yml up -d --build`
 6. Migration: `docker compose -f deploy/docker-compose.prod.yml exec web sh -c "npx drizzle-kit migrate"`
    çalışmazsa (standalone imajda drizzle-kit yok): migration'ı host'tan çalıştır:
