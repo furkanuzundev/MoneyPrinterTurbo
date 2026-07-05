@@ -1,9 +1,10 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import {
+  adminAdjustCredits,
   getBalance,
   grantWelcomeBonus,
   InsufficientCreditsError,
@@ -121,5 +122,31 @@ describe("db-level idempotency backstop", () => {
         kind: "welcome_bonus",
       }),
     ).rejects.toThrow();
+  });
+});
+
+describe("adminAdjustCredits", () => {
+  it("adds credits with a note", async () => {
+    await adminAdjustCredits(db, userId, 5, "destek telafisi");
+    expect(await getBalance(db, userId)).toBe(5);
+    const [row] = await db
+      .select()
+      .from(schema.creditLedger)
+      .where(eq(schema.creditLedger.userId, userId));
+    expect(row.kind).toBe("admin_adjustment");
+    expect(row.note).toBe("destek telafisi");
+  });
+  it("removes credits but never below zero", async () => {
+    await adminAdjustCredits(db, userId, 3);
+    await adminAdjustCredits(db, userId, -2);
+    expect(await getBalance(db, userId)).toBe(1);
+    await expect(adminAdjustCredits(db, userId, -2)).rejects.toThrow(
+      InsufficientCreditsError,
+    );
+    expect(await getBalance(db, userId)).toBe(1);
+  });
+  it("rejects zero and non-integer deltas", async () => {
+    await expect(adminAdjustCredits(db, userId, 0)).rejects.toThrow();
+    await expect(adminAdjustCredits(db, userId, 1.5)).rejects.toThrow();
   });
 });

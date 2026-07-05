@@ -114,3 +114,28 @@ export async function refundJob(db: Db, jobId: string): Promise<boolean> {
     return true;
   });
 }
+
+export async function adminAdjustCredits(
+  db: Db,
+  userId: string,
+  delta: number,
+  note?: string,
+): Promise<void> {
+  if (!Number.isInteger(delta) || delta === 0) {
+    throw new Error("delta must be a non-zero integer");
+  }
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT id FROM "user" WHERE id = ${userId} FOR UPDATE`);
+    const [row] = await tx
+      .select({ balance: sql<number>`coalesce(sum(${creditLedger.delta}), 0)::int` })
+      .from(creditLedger)
+      .where(eq(creditLedger.userId, userId));
+    if (row.balance + delta < 0) throw new InsufficientCreditsError();
+    await tx.insert(creditLedger).values({
+      userId,
+      delta,
+      kind: "admin_adjustment",
+      note: note?.trim() || null,
+    });
+  });
+}
