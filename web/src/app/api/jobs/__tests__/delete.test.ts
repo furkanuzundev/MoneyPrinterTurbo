@@ -38,4 +38,18 @@ describe("DELETE /api/jobs/[id] (s3)", () => {
     expect(res.status).toBe(200);
     expect(deleteTaskPrefix).toHaveBeenCalledWith("j1");
   });
+
+  it("still deletes the DB row when bucket prefix deletion fails", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    (auth as ReturnType<typeof vi.fn>).mockResolvedValue({ user: { id: "u1" } });
+    (deleteTaskPrefix as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("bucket down"),
+    );
+    const res = await DELETE(new Request("http://x/api/jobs/j1"), {
+      params: Promise.resolve({ id: "j1" }),
+    });
+    expect(res.status).toBe(200);
+    expect(db.delete).toHaveBeenCalled();
+    spy.mockRestore();
+  });
 });
