@@ -60,6 +60,32 @@ describe("createVideoJob", () => {
     expect(payload.task_id).toBe(jobId);
     expect(payload.params.match_materials_to_script).toBe(true);
   });
+  it("applies the caller's caption style to scene jobs", async () => {
+    await createVideoJob(db, redis, userId, {
+      ...INPUT,
+      script: "",
+      scenes: [{ caption: "Hi!", voiceover: "Hello there." }],
+      captionStyle: { size: "lg", position: "top", textColor: "#FFFFFF", bgColor: "none" },
+    });
+    const payload = JSON.parse((await redis.rpop(PENDING_KEY))!);
+    expect(payload.params.subtitle_position).toBe("top");
+    expect(payload.params.font_size).toBe(76);
+    expect(payload.params.text_fore_color).toBe("#FFFFFF");
+    expect(payload.params.text_background_color).toBe(false);
+  });
+  it("falls back to the default caption style when none is provided", async () => {
+    await createVideoJob(db, redis, userId, {
+      ...INPUT,
+      script: "",
+      scenes: [{ caption: "Hi!", voiceover: "Hello there." }],
+      // captionStyle omitted
+    });
+    const payload = JSON.parse((await redis.rpop(PENDING_KEY))!);
+    expect(payload.params.subtitle_position).toBe("bottom");
+    expect(payload.params.font_size).toBe(60);
+    expect(payload.params.text_fore_color).toBe("#141208");
+    expect(payload.params.text_background_color).toBe("#F4C63A");
+  });
   it("prices longer target lengths higher", async () => {
     const { credits } = await createVideoJob(db, redis, userId, {
       ...INPUT,

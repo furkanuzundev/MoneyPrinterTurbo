@@ -4,22 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CaptionStyle, Scene } from "@/lib/jobs/scenes";
-
-const SIZES: { id: CaptionStyle["size"]; label: string; px: number }[] = [
-  { id: "sm", label: "S", px: 17 },
-  { id: "md", label: "M", px: 23 },
-  { id: "lg", label: "L", px: 30 },
-];
-const POSITIONS: { id: CaptionStyle["position"]; label: string }[] = [
-  { id: "top", label: "Top" },
-  { id: "center", label: "Center" },
-  { id: "bottom", label: "Bottom" },
-];
-const COLORS: { id: CaptionStyle["color"]; label: string; swatch: string }[] = [
-  { id: "yellow", label: "Yellow", swatch: "#F4C63A" },
-  { id: "white", label: "White", swatch: "#FFFFFF" },
-  { id: "none", label: "Plain", swatch: "transparent" },
-];
+import {
+  SIZES,
+  POSITIONS,
+  TEXT_COLOR_PRESETS,
+  BG_COLOR_PRESETS,
+  captionPreviewStyles,
+} from "@/lib/jobs/caption-ui";
+import { ColorAxis } from "@/components/subtitle/color-axis";
 
 export function CaptionEditor({
   jobId,
@@ -40,20 +32,7 @@ export function CaptionEditor({
   const [error, setError] = useState<string | null>(null);
 
   const scene = scenes[current] ?? scenes[0];
-  const sizePx = SIZES.find((s) => s.id === style.size)?.px ?? 23;
-
-  const previewPos =
-    style.position === "top"
-      ? { top: 16 }
-      : style.position === "center"
-        ? { top: "50%", transform: "translateY(-50%)" }
-        : { bottom: 60 };
-  const previewColor =
-    style.color === "yellow"
-      ? { background: "#F4C63A", color: "#141208" }
-      : style.color === "white"
-        ? { background: "#fff", color: "#141208" }
-        : { color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.65)" };
+  const { pos: previewPos, color: previewColor, sizePx } = captionPreviewStyles(style);
 
   function patchCurrent(caption: string) {
     setScenes(scenes.map((s, i) => (i === current ? { ...s, caption } : s)));
@@ -185,28 +164,21 @@ export function CaptionEditor({
             </div>
           </div>
 
-          <label className="mb-2 mt-[22px] block text-[13px] font-semibold text-bone">
-            Caption style
-          </label>
-          <div className="flex gap-[9px]">
-            {COLORS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setStyle({ ...style, color: c.id })}
-                className={`flex items-center gap-[9px] rounded-[10px] border px-3 py-[9px] text-[13px] font-semibold transition-colors ${
-                  style.color === c.id
-                    ? "border-caption bg-caption/10 text-bone"
-                    : "border-white/10 bg-[#0E0C08] text-muted hover:text-bone"
-                }`}
-              >
-                <span
-                  className="h-3.5 w-3.5 rounded-full border border-white/25"
-                  style={{ background: c.swatch }}
-                />
-                {c.label}
-              </button>
-            ))}
+          <div className="mt-[22px]">
+            <ColorAxis
+              label="Text color"
+              presets={TEXT_COLOR_PRESETS}
+              value={style.textColor}
+              onChange={(v) => setStyle({ ...style, textColor: v })}
+            />
+          </div>
+          <div className="mt-[18px]">
+            <ColorAxis
+              label="Background color"
+              presets={BG_COLOR_PRESETS}
+              value={style.bgColor}
+              onChange={(v) => setStyle({ ...style, bgColor: v })}
+            />
           </div>
 
           <div className="my-6 h-px bg-white/5" />

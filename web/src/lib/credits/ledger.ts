@@ -49,7 +49,8 @@ export async function spendCreditsForJob(
     captionStyle: {
       size: "sm" | "md" | "lg";
       position: "top" | "center" | "bottom";
-      color: "yellow" | "white" | "none";
+      textColor: string;
+      bgColor: string;
     } | null;
     aspect: string;
     voice: string;

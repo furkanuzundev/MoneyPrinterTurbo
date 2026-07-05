@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { videoJobs } from "@/db/schema";
-import { DEFAULT_CAPTION_STYLE } from "@/lib/jobs/scenes";
+import { DEFAULT_CAPTION_STYLE, sanitizeCaptionStyle } from "@/lib/jobs/scenes";
 import { CaptionEditor } from "./editor";
 
 export default async function CaptionsPage({
@@ -27,7 +27,7 @@ export default async function CaptionsPage({
       jobId={job.id}
       subject={job.subject}
       initialScenes={job.scenes!}
-      initialStyle={job.captionStyle ?? DEFAULT_CAPTION_STYLE}
+      initialStyle={sanitizeCaptionStyle(job.captionStyle ?? DEFAULT_CAPTION_STYLE)}
     />
   );
 }
