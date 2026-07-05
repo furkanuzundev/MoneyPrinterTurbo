@@ -58,8 +58,10 @@ git add deploy && git commit -m "feat(deploy): add python api service for voice 
 ## 2. Kodu sunucuya taşı (rsync — GitHub kullanılmıyor)
 
 ```bash
+# NOT: '/storage' (kök-sabitli) — sadece kökteki runtime data dizinini hariç tutar.
+# Sabitsiz 'storage' YAZMA: web/src/lib/storage kaynak dizinini de siler → Next build "@/lib/storage" bulamaz.
 rsync -a --delete --exclude '.git' --exclude 'web/node_modules' --exclude 'web/.next' \
-  --exclude 'storage' --exclude '.superpowers' --exclude '.venv' --exclude 'config.toml' \
+  --exclude '/storage' --exclude '.superpowers' --exclude '.venv' --exclude 'config.toml' \
   --exclude 'web/.env.local' --exclude 'web/.env' \
   /Users/furkanuzun/Documents/GitHub/MoneyPrinterTurbo/MoneyPrinterTurbo/ \
   root@116.203.145.5:/opt/reelate/src/
