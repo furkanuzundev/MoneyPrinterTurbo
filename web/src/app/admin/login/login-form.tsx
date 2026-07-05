@@ -1,0 +1,38 @@
+"use client";
+
+import { useActionState } from "react";
+import { loginAction, type LoginState } from "../actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+export function LoginForm() {
+  const [state, formAction, pending] = useActionState<LoginState, FormData>(
+    loginAction,
+    {},
+  );
+  return (
+    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="username">Kullanıcı adı</Label>
+        <Input id="username" name="username" autoComplete="username" required />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="password">Şifre</Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
+      </div>
+      {state.error ? (
+        <p className="text-sm text-destructive">{state.error}</p>
+      ) : null}
+      <Button type="submit" disabled={pending}>
+        {pending ? "Giriş yapılıyor…" : "Giriş yap"}
+      </Button>
+    </form>
+  );
+}
