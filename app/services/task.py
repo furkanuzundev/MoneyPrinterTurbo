@@ -10,6 +10,7 @@ from app.models import const
 from app.models.schema import VideoConcatMode, VideoParams
 from app.services import llm, material, subtitle, twelvelabs, video, voice, upload_post
 from app.services import state as sm
+from app.services import storage as sto
 from app.utils import file_security, utils
 
 
@@ -296,6 +297,13 @@ def rerender(task_id, params: VideoParams):
             task_id, state=const.TASK_STATE_COMPLETE, progress=100
         )
 
+    # Kaynak dosyalar bu worker'ın diskinde olmayabilir (başka makine render etti).
+    # Bucket'tan indir. exists+get, LocalStorage'da da güvenli (kaynak==hedef atlanır).
+    store = sto.get_storage()
+    for name, local in (("combined-1.mp4", combined_path), ("audio.mp3", audio_file)):
+        if not path.exists(local) and store.exists(f"tasks/{task_id}/{name}"):
+            store.get(f"tasks/{task_id}/{name}", local)
+
     if not (path.exists(combined_path) and path.exists(audio_file)):
         logger.error(f"rerender sources missing for {task_id}, keeping old video")
         _restore_complete()
@@ -321,6 +329,7 @@ def rerender(task_id, params: VideoParams):
         if not path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
             raise RuntimeError("rerender produced no output")
         os.replace(tmp_path, final_path)
+        store.put(final_path, f"tasks/{task_id}/final-1.mp4")
     except Exception as e:
         logger.error(f"rerender failed for {task_id}: {str(e)}, keeping old video")
         _restore_complete()
@@ -542,6 +551,15 @@ def start(task_id, params: VideoParams, stop_at: str = "video"):
     if not final_video_paths:
         sm.state.update_task(task_id, state=const.TASK_STATE_FAILED)
         return
+
+    # Çıktıları ve rerender için gereken ara dosyaları bucket'a yükle.
+    # (LocalStorage'da bu no-op benzeri: kaynak==hedef ise kopya atlanır.)
+    store = sto.get_storage()
+    for fp in final_video_paths:
+        store.put(fp, f"tasks/{task_id}/{path.basename(fp)}")
+    for cp in combined_video_paths:
+        store.put(cp, f"tasks/{task_id}/{path.basename(cp)}")
+    store.put(audio_file, f"tasks/{task_id}/audio.mp3")
 
     logger.success(
         f"task {task_id} finished, generated {len(final_video_paths)} videos."

@@ -55,4 +55,5 @@ package = false
 dev = [
     "fakeredis==2.26.2",
     "pytest==8.4.2",
+    "moto==5.0.28",
 ]

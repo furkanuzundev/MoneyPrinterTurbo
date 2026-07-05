@@ -8,8 +8,6 @@ services:
       dockerfile: deploy/web.Dockerfile
     container_name: reelate-web
     env_file: /opt/reelate/.env.production
-    volumes:
-      - reelate_storage:/data/storage:ro
     networks: [internal, web]
     restart: unless-stopped
     labels:

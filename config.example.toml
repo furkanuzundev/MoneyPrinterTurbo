@@ -1,6 +1,17 @@
 [app]
 video_source = "pexels" # "pexels" or "pixabay"
 
+# Depolama backend'i: "local" (yerel disk) veya "s3" (Hetzner Object Storage / S3 uyumlu)
+# ÖNEMLİ: Bu değer web tarafındaki STORAGE_BACKEND (.env) ile AYNI olmalı.
+# Uyuşmazlık split-brain'e yol açar: worker bir yere yazar, web başka yerden okur.
+storage_backend = "local"
+# storage_backend = "s3" iken doldurulur:
+# s3_endpoint = "https://fsn1.your-objectstorage.com"
+# s3_bucket = "reelate"
+# s3_region = "fsn1"
+# s3_access_key = ""
+# s3_secret_key = ""
+
 # Çıktı çözünürlüğü: "1080p" (varsayılan) veya "720p".
 # 720p, kısa video platformları için yeterlidir ve render süresini belirgin düşürür.
 video_quality = "1080p"
