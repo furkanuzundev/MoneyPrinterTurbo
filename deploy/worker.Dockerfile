@@ -5,6 +5,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY app ./app
+COPY main.py ./
 COPY worker ./worker
 COPY resource ./resource
 COPY config.example.toml ./

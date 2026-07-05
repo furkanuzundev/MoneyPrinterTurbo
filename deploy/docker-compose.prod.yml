@@ -45,6 +45,19 @@ services:
     restart: unless-stopped
     cpus: "0.2"
 
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/worker.Dockerfile
+    container_name: reelate-api
+    command: ["uv", "run", "--no-sync", "python", "main.py"]
+    env_file: /opt/reelate/.env.production
+    volumes:
+      - /opt/reelate/config.toml:/app/config.toml:ro
+    networks: [internal]
+    restart: unless-stopped
+    cpus: "0.5"
+
   db:
     image: postgres:16-alpine
     container_name: reelate-db
