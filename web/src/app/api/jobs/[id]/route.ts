@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { videoJobs } from "@/db/schema";
 import { enqueueSentinelKey, getRedis } from "@/lib/jobs/queue";
+import { deleteTaskPrefix, storageBackend } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +30,19 @@ export async function DELETE(
     );
   }
 
-  const storageRoot = process.env.STORAGE_ROOT;
-  if (storageRoot) {
-    const taskDir = path.resolve(storageRoot, "tasks", id);
-    if (taskDir.startsWith(path.resolve(storageRoot) + path.sep)) {
-      await rm(taskDir, { recursive: true, force: true });
+  if (storageBackend() === "s3") {
+    try {
+      await deleteTaskPrefix(id);
+    } catch (e) {
+      console.error("bucket prefix silme başarısız", e);
+    }
+  } else {
+    const storageRoot = process.env.STORAGE_ROOT;
+    if (storageRoot) {
+      const taskDir = path.resolve(storageRoot, "tasks", id);
+      if (taskDir.startsWith(path.resolve(storageRoot) + path.sep)) {
+        await rm(taskDir, { recursive: true, force: true });
+      }
     }
   }
 
