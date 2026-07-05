@@ -73,3 +73,34 @@
 ## Rollback
 
 `cd /opt/reelate/src && git checkout <önceki-tag/sha> && docker compose -f deploy/docker-compose.prod.yml up -d --build`
+
+## Admin panel (admin.reelate.org)
+
+Admin paneli ayrı bir servis DEĞİLDİR; `reelate-web` konteynerinin içindedir.
+Middleware, `admin.reelate.org` host'unu `/admin/*` route'larına yönlendirir.
+
+### İlk kurulum (bir kez)
+
+1. Cloudflare DNS: `admin` A kaydı → `116.203.145.5`, proxy AÇIK.
+   (Origin cert `*.reelate.org`'u kapsıyor; Traefik tarafında ek TLS işi yok.)
+2. Şifre hash'i üret (lokalde):
+   `cd web && node scripts/admin-password-hash.mjs '<güçlü-şifre>'`
+3. Sunucuda `/opt/reelate/.env.production` dosyasına ekle:
+   ```
+   ADMIN_USERNAME=<kullanıcı-adı>
+   ADMIN_PASSWORD_HASH=<script çıktısı>
+   ```
+4. Admin panel kodu `main` branch'ine merge edilince, GitHub Actions workflow otomatik olarak tetiklenir (CI yeşil olunca `/opt/reelate/deploy.sh` çalıştırılır: `cd /opt/reelate/src && git pull && docker compose -f deploy/docker-compose.prod.yml up -d --build`). Migration çalıştırılması gerekiyorsa (0003 migration'ı `user.created_at`, `credit_ledger.note` kolonlarını ekler ve created_at backfill yapar), sunucuda İlk kurulum 6. adımındaki komutun aynısını çalıştır:
+   `docker run --rm --network reelate_internal -v /opt/reelate/src/web:/w -w /w node:22-alpine sh -c "npm install -g npm@11.6.2 && npm ci && DATABASE_URL=postgres://reelate:<pw>@reelate-db:5432/reelate npm run db:migrate"`
+
+### Smoke test
+
+- `https://admin.reelate.org` → login sayfası; doğru bilgilerle giriş → dashboard.
+- `https://reelate.org/admin` → 404.
+- `https://reelate.org` Google girişi etkilenmemiş olmalı.
+
+### Notlar
+
+- Admin oturumu: `admin_session` httpOnly cookie (7 gün, AUTH_SECRET ile imzalı JWT).
+- Şifre değişikliği: yeni hash üret, env'i güncelle, `docker compose up -d web`.
+- Kredi düzeltmeleri `credit_ledger`'a `kind='admin_adjustment'` satırı olarak yazılır (not alanıyla).

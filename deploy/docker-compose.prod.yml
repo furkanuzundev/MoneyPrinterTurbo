@@ -13,7 +13,7 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: "web"
-      traefik.http.routers.reelate.rule: "Host(`reelate.org`) || Host(`www.reelate.org`)"
+      traefik.http.routers.reelate.rule: "Host(`reelate.org`) || Host(`www.reelate.org`) || Host(`admin.reelate.org`)"
       traefik.http.routers.reelate.entrypoints: "websecure"
       traefik.http.routers.reelate.tls: "true"
       traefik.http.services.reelate.loadbalancer.server.port: "3000"
