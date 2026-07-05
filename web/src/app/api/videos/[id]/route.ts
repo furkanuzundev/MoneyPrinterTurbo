@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { videoJobs } from "@/db/schema";
+import { presignedGetUrl, storageBackend } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,16 @@ export async function GET(
     return new Response("Video not ready", { status: 409 });
   }
 
+  const download = new URL(request.url).searchParams.get("download") === "1";
+
+  if (storageBackend() === "s3") {
+    const url = await presignedGetUrl(job.outputPath, {
+      download,
+      filename: `reelate-${id}.mp4`,
+    });
+    return Response.redirect(url, 307);
+  }
+
   const storageRoot = process.env.STORAGE_ROOT;
   if (!storageRoot) return new Response("Storage not configured", { status: 500 });
   const filePath = path.resolve(storageRoot, job.outputPath);
@@ -31,7 +42,6 @@ export async function GET(
   if (!existsSync(filePath)) return new Response("Not found", { status: 404 });
 
   const { size } = statSync(filePath);
-  const download = new URL(request.url).searchParams.get("download") === "1";
   const headers: Record<string, string> = {
     "Content-Type": "video/mp4",
     "Content-Length": String(size),
