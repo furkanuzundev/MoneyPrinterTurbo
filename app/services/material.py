@@ -60,6 +60,16 @@ def get_api_key(cfg_key: str):
         return api_keys[_api_key_counter % len(api_keys)]
 
 
+def _matches_orientation(width: int, height: int, video_aspect: VideoAspect) -> bool:
+    # 9:16 istenirken yatay klip (veya tersi) timeline'a girerse letterbox
+    # oluşuyor; bu yüzden yönü tutmayan klipler kaynak seviyesinde elenir.
+    if video_aspect == VideoAspect.portrait:
+        return height > width
+    if video_aspect == VideoAspect.landscape:
+        return width > height
+    return True
+
+
 def search_videos_pexels(
     search_term: str,
     minimum_duration: int,
@@ -158,7 +168,9 @@ def search_videos_pixabay(
             for video_type in video_files:
                 video = video_files[video_type]
                 w = int(video["width"])
-                # h = int(video["height"])
+                h = int(video.get("height") or 0)
+                if not _matches_orientation(w, h, aspect):
+                    continue
                 if w >= video_width:
                     item = MaterialInfo()
                     item.provider = "pixabay"
@@ -188,8 +200,9 @@ def search_videos_coverr(
       - 加 ?urls=true 在搜索响应里直接返回 mp4 直链
       - URL 是 signed JWT(绑定 API key,无过期时间)
       - Coverr 库以 16:9 横屏为主,9:16 portrait 占比极低(约 1%)
-        因此本函数不做 aspect_ratio 过滤,由下游 video.py 的
-        resize + letterbox 逻辑统一处理
+      - 服务端不支持 orientation 查询参数(vertical=true 被忽略),
+        因此用响应里的 is_vertical / max_width / max_height 字段做
+        客户端过滤;两者都缺失时不过滤(交给下游 letterbox 兜底)
       - duration 字段同时存在 number 和 string 两种形态,本函数都接受
 
     本函数使用 urls.mp4_download 字段作为下载地址 —— 按 Coverr 官方文档
@@ -236,6 +249,20 @@ def search_videos_coverr(
             mp4_download_url = (v.get("urls") or {}).get("mp4_download")
             if not video_id or not mp4_download_url:
                 continue
+
+            is_vertical = v.get("is_vertical")
+            if not isinstance(is_vertical, bool):
+                max_w, max_h = v.get("max_width"), v.get("max_height")
+                if max_w and max_h:
+                    is_vertical = max_h > max_w
+                else:
+                    is_vertical = None
+            if is_vertical is not None:
+                aspect = VideoAspect(video_aspect)
+                if aspect == VideoAspect.portrait and not is_vertical:
+                    continue
+                if aspect == VideoAspect.landscape and is_vertical:
+                    continue
 
             item = MaterialInfo()
             item.provider = "coverr"

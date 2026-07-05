@@ -74,7 +74,8 @@ class TestMaterialTlsVerification(unittest.TestCase):
                         "duration": 8,
                         "videos": {
                             "large": {
-                                "width": 1920,
+                                "width": 1080,
+                                "height": 1920,
                                 "url": "https://example.com/video.mp4",
                             }
                         },
@@ -439,6 +440,231 @@ class TestCoverrProvider(unittest.TestCase):
 
         # 3. 返回值正确
         self.assertEqual(result, ["/tmp/coverr-saved.mp4"])
+
+
+class TestSourceOrientationFiltering(unittest.TestCase):
+    """
+    9:16 (portrait) seçiliyken yatay klipler timeline'a girip üst-alt boşluk
+    (letterbox) yaratıyordu. Pexels API tarafında orientation filtreliyor;
+    pixabay ve coverr'ın da istemci tarafında elemesi gerekir.
+    """
+
+    def setUp(self):
+        self.original_app_config = dict(config.app)
+        self.original_proxy_config = dict(config.proxy)
+        config.proxy.clear()
+
+    def tearDown(self):
+        config.app.clear()
+        config.app.update(self.original_app_config)
+        config.proxy.clear()
+        config.proxy.update(self.original_proxy_config)
+
+    # ---------------- pixabay ----------------
+
+    def _pixabay_response(self):
+        return SimpleNamespace(
+            json=lambda: {
+                "hits": [
+                    {  # yatay klip: 1920x1080
+                        "duration": 8,
+                        "videos": {
+                            "large": {
+                                "width": 1920,
+                                "height": 1080,
+                                "url": "https://example.com/landscape.mp4",
+                            }
+                        },
+                    },
+                    {  # dikey klip: 1080x1920
+                        "duration": 8,
+                        "videos": {
+                            "large": {
+                                "width": 1080,
+                                "height": 1920,
+                                "url": "https://example.com/portrait.mp4",
+                            }
+                        },
+                    },
+                ]
+            }
+        )
+
+    def test_search_pixabay_excludes_landscape_for_portrait_aspect(self):
+        config.app["pixabay_api_keys"] = ["pixabay-key"]
+        with patch(
+            "app.services.material.requests.get",
+            return_value=self._pixabay_response(),
+        ):
+            results = material.search_videos_pixabay(
+                "cat",
+                minimum_duration=1,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual(
+            [r.url for r in results], ["https://example.com/portrait.mp4"]
+        )
+
+    def test_search_pixabay_excludes_portrait_for_landscape_aspect(self):
+        config.app["pixabay_api_keys"] = ["pixabay-key"]
+        with patch(
+            "app.services.material.requests.get",
+            return_value=self._pixabay_response(),
+        ):
+            results = material.search_videos_pixabay(
+                "cat",
+                minimum_duration=1,
+                video_aspect=material.VideoAspect.landscape,
+            )
+        self.assertEqual(
+            [r.url for r in results], ["https://example.com/landscape.mp4"]
+        )
+
+    def test_search_pixabay_picks_matching_rendition_among_mixed(self):
+        """
+        Aynı hit içinde birden çok rendition varsa yönü tutan ve yeterince
+        büyük olanı seçmeli; ilk bakılan rendition yatay diye hit'i
+        atlamamalı.
+        """
+        config.app["pixabay_api_keys"] = ["pixabay-key"]
+        fake_response = SimpleNamespace(
+            json=lambda: {
+                "hits": [
+                    {
+                        "duration": 8,
+                        "videos": {
+                            "large": {
+                                "width": 1920,
+                                "height": 1080,
+                                "url": "https://example.com/wrong.mp4",
+                            },
+                            "medium": {
+                                "width": 1080,
+                                "height": 1920,
+                                "url": "https://example.com/right.mp4",
+                            },
+                        },
+                    }
+                ]
+            }
+        )
+        with patch(
+            "app.services.material.requests.get", return_value=fake_response
+        ):
+            results = material.search_videos_pixabay(
+                "cat",
+                minimum_duration=1,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual(
+            [r.url for r in results], ["https://example.com/right.mp4"]
+        )
+
+    # ---------------- coverr ----------------
+
+    def _coverr_response(self):
+        return SimpleNamespace(
+            json=lambda: {
+                "hits": [
+                    {  # yatay klip
+                        "id": "land",
+                        "duration": 10,
+                        "is_vertical": False,
+                        "max_width": 1920,
+                        "max_height": 1080,
+                        "urls": {"mp4_download": "https://example.com/land.mp4"},
+                    },
+                    {  # dikey klip
+                        "id": "port",
+                        "duration": 10,
+                        "is_vertical": True,
+                        "max_width": 1080,
+                        "max_height": 1920,
+                        "urls": {"mp4_download": "https://example.com/port.mp4"},
+                    },
+                ]
+            }
+        )
+
+    def test_search_coverr_excludes_landscape_for_portrait_aspect(self):
+        config.app["coverr_api_keys"] = ["coverr-key"]
+        with patch(
+            "app.services.material.requests.get",
+            return_value=self._coverr_response(),
+        ):
+            results = material.search_videos_coverr(
+                "nature",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual([r.url for r in results], ["https://example.com/port.mp4"])
+
+    def test_search_coverr_excludes_portrait_for_landscape_aspect(self):
+        config.app["coverr_api_keys"] = ["coverr-key"]
+        with patch(
+            "app.services.material.requests.get",
+            return_value=self._coverr_response(),
+        ):
+            results = material.search_videos_coverr(
+                "nature",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.landscape,
+            )
+        self.assertEqual([r.url for r in results], ["https://example.com/land.mp4"])
+
+    def test_search_coverr_falls_back_to_max_dimensions(self):
+        """is_vertical yoksa max_width/max_height karşılaştırması kullanılır."""
+        config.app["coverr_api_keys"] = ["coverr-key"]
+        fake_response = SimpleNamespace(
+            json=lambda: {
+                "hits": [
+                    {
+                        "id": "dims-only",
+                        "duration": 10,
+                        "max_width": 1080,
+                        "max_height": 1920,
+                        "urls": {"mp4_download": "https://example.com/v.mp4"},
+                    }
+                ]
+            }
+        )
+        with patch(
+            "app.services.material.requests.get", return_value=fake_response
+        ):
+            results = material.search_videos_coverr(
+                "nature",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual([r.url for r in results], ["https://example.com/v.mp4"])
+
+    def test_search_coverr_keeps_items_without_orientation_info(self):
+        """
+        Yön bilgisi hiç yoksa (eski mock'lar / API değişimi) hit elenmez;
+        letterbox'a düşmek, hiç sonuç bulamamaktan iyidir ve gerçek API her
+        zaman is_vertical döndürüyor.
+        """
+        config.app["coverr_api_keys"] = ["coverr-key"]
+        fake_response = SimpleNamespace(
+            json=lambda: {
+                "hits": [
+                    {
+                        "id": "no-info",
+                        "duration": 10,
+                        "urls": {"mp4_download": "https://example.com/u.mp4"},
+                    }
+                ]
+            }
+        )
+        with patch(
+            "app.services.material.requests.get", return_value=fake_response
+        ):
+            results = material.search_videos_coverr(
+                "nature",
+                minimum_duration=5,
+                video_aspect=material.VideoAspect.portrait,
+            )
+        self.assertEqual([r.url for r in results], ["https://example.com/u.mp4"])
 
 
 class ConfiguredSourcesTest(unittest.TestCase):
