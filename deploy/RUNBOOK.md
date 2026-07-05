@@ -9,6 +9,9 @@
 4. `config.toml` hazırla: lokal config.toml'dan kopyala; `enable_redis=true`,
    `redis_host="reelate-cache"`, `video_quality="720p"`, `ffmpeg_preset="veryfast"`
    → `/opt/reelate/config.toml`
+   S3 backend için ayrıca: `storage_backend="s3"` ve `s3_endpoint`, `s3_bucket`,
+   `s3_region`, `s3_access_key`, `s3_secret_key` anahtarlarını doldur — önce
+   Hetzner Console'da bucket + S3 credential (access/secret key) oluştur.
 5. `docker compose -f deploy/docker-compose.prod.yml up -d --build`
 6. Migration: `docker compose -f deploy/docker-compose.prod.yml exec web sh -c "npx drizzle-kit migrate"`
    çalışmazsa (standalone imajda drizzle-kit yok): migration'ı host'tan çalıştır:
@@ -49,9 +52,10 @@
    `scp /opt/reelate/.env.production /opt/reelate/config.toml root@<yeni-ip>:/opt/reelate-worker/`
    — config.toml'daki `redis_host`'u ana makinenin IP'sine çevir; sonra yeni makinede
    `cd /opt/reelate-worker && docker compose up -d --build`
-3. Kuyruk boşalınca: yeni makinede işlerin bittiğini bekle, videoları taşı:
-   `rsync -a root@<yeni-ip>:/var/lib/docker/volumes/reelate-worker_reelate_worker_storage/_data/tasks/ <ana>/opt/reelate/storage/tasks/`
-   sonra makineyi sil. (Sınır: tam autoscaler + paylaşımlı storage lansman sonrası.)
+3. Kuyruk boşalınca: yeni makinede işlerin bittiğini bekle, sonra makineyi sil.
+   Videolar object storage'da (S3/Hetzner bucket) tutulduğu için worker
+   makineleri arası video taşıma (rsync vb.) gerekmez. (Sınır: tam autoscaler
+   lansman sonrası.)
 
 ## Loglar
 

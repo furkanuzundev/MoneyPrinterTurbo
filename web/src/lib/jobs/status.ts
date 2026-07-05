@@ -60,6 +60,8 @@ export async function syncJobStatus(
   }
 
   if (engine.state === ENGINE_COMPLETE) {
+    // outputPath aynı zamanda bucket key'idir (tasks/<id>/final-1.mp4).
+    // S3 backend'inde /api/videos bunu presigned URL üretmek için kullanır.
     const outputPath = `tasks/${jobId}/final-1.mp4`;
     const [updated] = await db
       .update(videoJobs)
