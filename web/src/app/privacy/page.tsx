@@ -47,8 +47,8 @@ export default function PrivacyPage() {
           Your videos stay in your library until you delete them. You can
           request full deletion of your account and data at any time by
           emailing{" "}
-          <a href="mailto:support@reelate.co" className="underline">
-            support@reelate.co
+          <a href="mailto:support@reelate.org" className="underline">
+            support@reelate.org
           </a>
           .
         </p>

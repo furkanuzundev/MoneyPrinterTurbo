@@ -10,7 +10,7 @@ const PKG = {
 };
 
 describe("buildCheckoutParams", () => {
-  const params = buildCheckoutParams(PKG, "user-1", "https://reelate.co", false);
+  const params = buildCheckoutParams(PKG, "user-1", "https://reelate.org", false);
 
   it("is a one-time payment with correct amount", () => {
     expect(params.mode).toBe("payment");
@@ -37,13 +37,13 @@ describe("buildCheckoutParams", () => {
   });
   it("sets redirect urls", () => {
     expect(params.success_url).toBe(
-      "https://reelate.co/dashboard/buy/success?session_id={CHECKOUT_SESSION_ID}",
+      "https://reelate.org/dashboard/buy/success?session_id={CHECKOUT_SESSION_ID}",
     );
-    expect(params.cancel_url).toBe("https://reelate.co/dashboard/buy");
+    expect(params.cancel_url).toBe("https://reelate.org/dashboard/buy");
   });
   it("enables automatic tax only when flagged", () => {
     expect(params.automatic_tax).toBeUndefined();
-    const taxed = buildCheckoutParams(PKG, "user-1", "https://reelate.co", true);
+    const taxed = buildCheckoutParams(PKG, "user-1", "https://reelate.org", true);
     expect(taxed.automatic_tax).toEqual({ enabled: true });
   });
 });

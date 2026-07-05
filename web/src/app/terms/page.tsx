@@ -66,8 +66,8 @@ export default function TermsPage() {
         <p>
           We may update these terms; material changes will be announced on
           this page. Questions? Email{" "}
-          <a href="mailto:support@reelate.co" className="underline">
-            support@reelate.co
+          <a href="mailto:support@reelate.org" className="underline">
+            support@reelate.org
           </a>
           .
         </p>

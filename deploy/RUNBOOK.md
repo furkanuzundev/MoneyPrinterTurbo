@@ -29,20 +29,20 @@
    lockfile'daki `@tailwindcss/oxide-wasm32-wasi` optional bundleDependencies'i
    yanlış "Missing from lock file" hatasıyla reddediyor — aynı bug web.Dockerfile'da
    npm@11.6.2 pin'iyle atlatılıyor, migration komutu da aynı pin'i kullanmalı.)
-7. Smoke: `curl -H 'Host: reelate.co' -k https://127.0.0.1/` → Reelate landing HTML
+7. Smoke: `curl -H 'Host: reelate.org' -k https://127.0.0.1/` → Reelate landing HTML
 
 ## DNS + TLS (operatör)
 
-1. reelate.co'yu satın al, Cloudflare'e ekle (ücretsiz plan)
+1. reelate.org'yu satın al, Cloudflare'e ekle (ücretsiz plan)
 2. DNS: A kaydı `@` ve `www` → 116.203.145.5, Proxy AÇIK (turuncu bulut)
 3. Cloudflare SSL/TLS → Full (strict); Origin Server → Create Certificate
-   (reelate.co, *.reelate.co) → pem+key'i sunucuda
+   (reelate.org, *.reelate.org) → pem+key'i sunucuda
    `/home/deploy/falportal/traefik/certs/reelate-origin.pem|-key.pem` olarak kaydet
 4. `/home/deploy/falportal/traefik/dynamic/tls.yml`'e EK (mevcut girdilere dokunma):
    `- certFile: /certs/reelate-origin.pem` / `keyFile: /certs/reelate-origin-key.pem`
    (dynamic dizini watch'lı; traefik restart gerekmez)
 5. Google OAuth client'a prod redirect ekle:
-   `https://reelate.co/api/auth/callback/google`
+   `https://reelate.org/api/auth/callback/google`
 
 ## Güncelleme deploy'u
 

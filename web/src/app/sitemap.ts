@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { USE_CASES } from "@/lib/seo/use-cases";
 
-const BASE_URL = "https://reelate.co";
+const BASE_URL = "https://reelate.org";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes: MetadataRoute.Sitemap = [

@@ -21,7 +21,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://reelate.co"),
+  metadataBase: new URL("https://reelate.org"),
   title: "Reelate — AI Short Video Generator",
   description:
     "Turn any topic into a ready-to-post short video with AI voiceover and subtitles in minutes.",

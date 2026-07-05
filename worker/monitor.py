@@ -40,7 +40,7 @@ def send_alert(depth: int) -> None:
         "https://api.resend.com/emails",
         headers={"Authorization": f"Bearer {api_key}"},
         json={
-            "from": "Reelate Monitor <alerts@reelate.co>",
+            "from": "Reelate Monitor <alerts@reelate.org>",
             "to": [to_email],
             "subject": f"Reelate queue backlog: {depth} jobs waiting",
             "text": (
