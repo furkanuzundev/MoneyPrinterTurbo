@@ -6,7 +6,7 @@ export const DURATION_TIERS = [
   { seconds: 180, credits: 6 },
 ] as const satisfies readonly { seconds: number; credits: number }[];
 
-export const WELCOME_BONUS_CREDITS = 2;
+export const WELCOME_BONUS_CREDITS = 5;
 
 const WORDS_PER_SECOND = 2.5;
 

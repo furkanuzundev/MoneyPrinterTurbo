@@ -43,8 +43,8 @@ describe("estimateDurationSeconds", () => {
 });
 
 describe("constants", () => {
-  it("welcome bonus is 2", () => {
-    expect(WELCOME_BONUS_CREDITS).toBe(2);
+  it("welcome bonus is 5", () => {
+    expect(WELCOME_BONUS_CREDITS).toBe(5);
   });
   it("tiers match spec", () => {
     expect(DURATION_TIERS).toEqual([

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
@@ -11,11 +12,11 @@ export function LandingHeader() {
   return (
     <header className="flex items-center justify-between border-b border-white/5 px-6 py-6 md:px-12 lg:px-[72px]">
       <div className="flex items-center gap-11">
-        <Link
-          href="/"
-          className="font-display text-[22px] font-extrabold tracking-[-0.02em] text-bone"
-        >
-          Reelate
+        <Link href="/" aria-label="Reelate home">
+          <Logo
+            markClassName="h-7 w-7"
+            wordmarkClassName="text-[22px] text-bone"
+          />
         </Link>
         <nav className="hidden gap-[30px] text-[15px] text-muted lg:flex">
           {NAV_LINKS.map((link) => (

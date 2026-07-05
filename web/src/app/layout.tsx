@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   title: "Reelate — AI Short Video Generator",
   description:
     "Turn any topic into a ready-to-post short video with AI voiceover and subtitles in minutes.",
+  manifest: "/manifest.webmanifest",
   openGraph: {
     siteName: "Reelate",
     type: "website",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description:
       "Turn any topic into a ready-to-post short video with AI voiceover and subtitles in minutes.",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f4c63a",
 };
 
 export default function RootLayout({

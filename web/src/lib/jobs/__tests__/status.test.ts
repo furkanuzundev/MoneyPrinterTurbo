@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 import { getBalance, grantWelcomeBonus, spendCreditsForJob } from "@/lib/credits/ledger";
+import { WELCOME_BONUS_CREDITS } from "@/lib/credits/pricing";
 import { enqueueJob } from "../queue";
 import { stageForProgress, syncJobStatus } from "../status";
 
@@ -64,9 +65,9 @@ describe("syncJobStatus", () => {
   it("marks failed and refunds exactly once", async () => {
     await redis.hset(jobId, { state: "-1", progress: "0" });
     await syncJobStatus(db, redis, jobId);
-    expect(await getBalance(db, userId)).toBe(2); // 2 bonus - 1 spend + 1 refund
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS); // bonus - 1 spend + 1 refund
     await syncJobStatus(db, redis, jobId); // ikinci senkron çift iade yapmamalı
-    expect(await getBalance(db, userId)).toBe(2);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS);
     const [job] = await db.select().from(schema.videoJobs);
     expect(job.status).toBe("failed");
   });
@@ -84,7 +85,7 @@ describe("syncJobStatus", () => {
     spy.mockRestore();
     const result = await syncJobStatus(db, redis, jobId);
     expect(result!.job.status).toBe("failed");
-    expect(await getBalance(db, userId)).toBe(2); // iade gerçekleşti
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS); // iade gerçekleşti
     void original;
   });
   it("does not touch redis for already-terminal jobs", async () => {
@@ -102,13 +103,13 @@ describe("syncJobStatus", () => {
       .where(eq(schema.videoJobs.id, jobId));
     const result = await syncJobStatus(db, redis, jobId);
     expect(result!.job.status).toBe("failed");
-    expect(await getBalance(db, userId)).toBe(2); // iade edildi
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS); // iade edildi
   });
 
   it("leaves a fresh queued job alone", async () => {
     const result = await syncJobStatus(db, redis, jobId);
     expect(result!.job.status).toBe("queued");
-    expect(await getBalance(db, userId)).toBe(1); // iade YOK
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS - 1); // iade YOK
   });
 
   it("does not reconcile an old job that IS in the queue (backlog)", async () => {
@@ -126,7 +127,7 @@ describe("syncJobStatus", () => {
       .where(eq(schema.videoJobs.id, jobId));
     const result = await syncJobStatus(db, redis, jobId);
     expect(result!.job.status).toBe("queued"); // iade YOK, iş kuyrukta
-    expect(await getBalance(db, userId)).toBe(1);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS - 1);
   });
 });
 

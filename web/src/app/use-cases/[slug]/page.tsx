@@ -78,7 +78,7 @@ export default async function UseCasePage({ params }: PageProps) {
           href="/signin"
           className={buttonClasses("primary", "px-6 py-3 text-base")}
         >
-          Start free &mdash; 2 videos on us
+          Start free &mdash; 5 videos on us
         </Link>
       </section>
 
@@ -137,7 +137,7 @@ export default async function UseCasePage({ params }: PageProps) {
             href="/signin"
             className={buttonClasses("primary", "px-6 py-3 text-base")}
           >
-            Start free &mdash; 2 videos on us
+            Start free &mdash; 5 videos on us
           </Link>
         </div>
       </section>

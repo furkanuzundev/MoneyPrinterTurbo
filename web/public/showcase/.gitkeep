@@ -1,0 +1,4 @@
+Bu klasör "Made with Reelate" showcase videolarını tutar.
+Üretmek için:  bash web/scripts/render-showcase.sh
+Beklenen dosyalar: showcase-1.mp4/.jpg, showcase-2.mp4/.jpg, showcase-3.mp4/.jpg
+Video dosyaları git'e commit'lenmeyebilir; deploy'da public/showcase/ altında bulunmalı.

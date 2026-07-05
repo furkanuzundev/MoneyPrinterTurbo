@@ -1,0 +1,31 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Reelate">
+  <title>Reelate</title>
+  <!-- Full-bleed gold field; R scaled to ~64% and centered so it sits inside the maskable 80% safe zone. -->
+  <rect width="512" height="512" fill="#F4C63A"/>
+  <g transform="translate(256 256) scale(0.62) translate(-256 -262)">
+    <path fill="#141208" transform="translate(0 6)" d="
+      M150 128
+      h132
+      c56 0 96 38 96 92
+      c0 42 -24 73 -62 86
+      l70 106
+      a4 4 0 0 1 -3 6
+      h-58
+      a4 4 0 0 1 -3 -2
+      l-64 -100
+      h-34
+      v98
+      a4 4 0 0 1 -4 4
+      h-53
+      a4 4 0 0 1 -4 -4
+      V132
+      a4 4 0 0 1 4 -4
+      Z
+      M211 182
+      v78
+      h60
+      c26 0 41 -15 41 -39
+      c0 -24 -15 -39 -41 -39
+      Z"/>
+  </g>
+</svg>

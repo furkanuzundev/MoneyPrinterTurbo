@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { LogoMark } from "@/components/logo";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Home", icon: Home },
@@ -54,9 +55,7 @@ export function AppSidebar({
           href="/dashboard"
           className="flex items-center gap-2.5 px-2 py-1.5"
         >
-          <span className="inline-flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] bg-caption font-display text-[19px] font-extrabold text-caption-ink">
-            R
-          </span>
+          <LogoMark className="h-[30px] w-[30px] flex-none" />
           <span className="font-display text-xl font-extrabold tracking-[-0.02em] text-sidebar-foreground group-data-[collapsible=icon]:hidden">
             Reelate
           </span>

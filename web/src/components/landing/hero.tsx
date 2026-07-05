@@ -29,7 +29,7 @@ export function Hero() {
             href="/signin"
             className="rounded-[13px] bg-caption px-[26px] py-[15px] text-base font-bold text-caption-ink transition-opacity hover:opacity-90"
           >
-            Start free &mdash; 2 videos on us
+            Start free &mdash; 5 videos on us
           </Link>
           <WatchDemoButton />
         </div>

@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 import { getBalance, grantWelcomeBonus, InsufficientCreditsError } from "@/lib/credits/ledger";
+import { WELCOME_BONUS_CREDITS } from "@/lib/credits/pricing";
 import { createVideoJob, ValidationError } from "../create";
 import { PENDING_KEY } from "../queue";
 
@@ -28,7 +29,7 @@ beforeEach(async () => {
   await db.execute(sql`TRUNCATE "user", credit_ledger, video_jobs CASCADE`);
   const [u] = await db.insert(schema.users).values({ email: "c@example.com" }).returning();
   userId = u.id;
-  await grantWelcomeBonus(db, userId); // 2 kredi
+  await grantWelcomeBonus(db, userId); // welcome bonus
 });
 afterAll(async () => {
   await redis.quit();
@@ -39,7 +40,7 @@ describe("createVideoJob", () => {
   it("spends credits and enqueues a worker-compatible job", async () => {
     const { jobId, credits } = await createVideoJob(db, redis, userId, INPUT);
     expect(credits).toBe(1);
-    expect(await getBalance(db, userId)).toBe(1);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS - 1);
     const raw = await redis.rpop(PENDING_KEY);
     const payload = JSON.parse(raw!);
     expect(payload.task_id).toBe(jobId);
@@ -100,7 +101,7 @@ describe("createVideoJob", () => {
     await expect(
       createVideoJob(db, redis, userId, { ...INPUT, aspect: "4:5" }),
     ).rejects.toThrow(ValidationError);
-    expect(await getBalance(db, userId)).toBe(2); // hiç kredi düşmedi
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS); // hiç kredi düşmedi
   });
   it("rejects empty or oversized scripts", async () => {
     await expect(
@@ -142,7 +143,7 @@ describe("createVideoJob", () => {
     await expect(
       createVideoJob(db, brokenRedis, userId, INPUT),
     ).rejects.toThrow("redis down");
-    expect(await getBalance(db, userId)).toBe(2); // iade edildi
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS); // iade edildi
     const [job] = await db.select().from(schema.videoJobs);
     expect(job.status).toBe("failed");
   });

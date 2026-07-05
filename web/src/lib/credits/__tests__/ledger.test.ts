@@ -10,6 +10,7 @@ import {
   refundJob,
   spendCreditsForJob,
 } from "../ledger";
+import { WELCOME_BONUS_CREDITS } from "../pricing";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL_TEST });
 const db = drizzle(pool, { schema });
@@ -40,14 +41,14 @@ beforeEach(async () => {
 afterAll(() => pool.end());
 
 describe("grantWelcomeBonus", () => {
-  it("grants 2 credits once", async () => {
+  it("grants the welcome bonus once", async () => {
     expect(await grantWelcomeBonus(db, userId)).toBe(true);
-    expect(await getBalance(db, userId)).toBe(2);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS);
   });
   it("is idempotent", async () => {
     await grantWelcomeBonus(db, userId);
     expect(await grantWelcomeBonus(db, userId)).toBe(false);
-    expect(await getBalance(db, userId)).toBe(2);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS);
   });
 });
 
@@ -56,11 +57,11 @@ describe("spendCreditsForJob", () => {
     await grantWelcomeBonus(db, userId);
     const { jobId } = await spendCreditsForJob(db, userId, JOB);
     expect(jobId).toBeTruthy();
-    expect(await getBalance(db, userId)).toBe(0);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS - JOB.credits);
     const jobs = await db.select().from(schema.videoJobs);
     expect(jobs).toHaveLength(1);
     expect(jobs[0].status).toBe("queued");
-    expect(jobs[0].credits).toBe(2);
+    expect(jobs[0].credits).toBe(JOB.credits);
   });
   it("rejects insufficient balance and writes nothing", async () => {
     await expect(spendCreditsForJob(db, userId, JOB)).rejects.toThrow(
@@ -70,10 +71,12 @@ describe("spendCreditsForJob", () => {
     expect(await db.select().from(schema.videoJobs)).toHaveLength(0);
   });
   it("prevents double-spend under concurrency", async () => {
-    await grantWelcomeBonus(db, userId); // 2 kredi, her iş 2 kredi
+    await grantWelcomeBonus(db, userId);
+    // Her iş bonusun tamamına mal olur -> iki eşzamanlı istekten yalnızca biri geçmeli.
+    const fullSpendJob = { ...JOB, credits: WELCOME_BONUS_CREDITS };
     const results = await Promise.allSettled([
-      spendCreditsForJob(db, userId, JOB),
-      spendCreditsForJob(db, userId, JOB),
+      spendCreditsForJob(db, userId, fullSpendJob),
+      spendCreditsForJob(db, userId, fullSpendJob),
     ]);
     const ok = results.filter((r) => r.status === "fulfilled");
     expect(ok).toHaveLength(1);
@@ -86,9 +89,9 @@ describe("refundJob", () => {
     await grantWelcomeBonus(db, userId);
     const { jobId } = await spendCreditsForJob(db, userId, JOB);
     expect(await refundJob(db, jobId)).toBe(true);
-    expect(await getBalance(db, userId)).toBe(2);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS);
     expect(await refundJob(db, jobId)).toBe(false); // idempotent
-    expect(await getBalance(db, userId)).toBe(2);
+    expect(await getBalance(db, userId)).toBe(WELCOME_BONUS_CREDITS);
   });
   it("returns false for unknown job", async () => {
     expect(await refundJob(db, "00000000-0000-0000-0000-000000000000")).toBe(false);
