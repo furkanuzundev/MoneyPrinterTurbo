@@ -21,6 +21,7 @@ export const users = pgTable("user", {
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
 export const accounts = pgTable(
@@ -73,10 +74,11 @@ export const creditLedger = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     delta: integer("delta").notNull(),
     kind: text("kind", {
-      enum: ["purchase", "spend", "refund", "welcome_bonus"],
+      enum: ["purchase", "spend", "refund", "welcome_bonus", "admin_adjustment"],
     }).notNull(),
     jobId: uuid("job_id"),
     purchaseId: text("purchase_id"),
+    note: text("note"),
     createdAt: timestamp("created_at", { mode: "date" })
       .notNull()
       .defaultNow(),

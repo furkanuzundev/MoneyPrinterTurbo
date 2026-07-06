@@ -1,0 +1,22 @@
+.viz-root {
+  --viz-surface: #fcfcfb;
+  --viz-ink: #0b0b0b;
+  --viz-ink-muted: #898781;
+  --viz-grid: #e1e0d9;
+  --viz-baseline: #c3c2b7;
+  --viz-series-1: #2a78d6; /* categorical slot 1: blue */
+  --viz-status-good: #0ca30c;
+  --viz-status-critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  .viz-root {
+    --viz-surface: #1a1a19;
+    --viz-ink: #ffffff;
+    --viz-ink-muted: #898781;
+    --viz-grid: #2c2c2a;
+    --viz-baseline: #383835;
+    --viz-series-1: #3987e5;
+    --viz-status-good: #0ca30c;
+    --viz-status-critical: #d03b3b;
+  }
+}
