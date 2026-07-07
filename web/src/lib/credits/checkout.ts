@@ -20,6 +20,7 @@ export function buildCheckoutParams(
       },
     ],
     metadata: {
+      source: "reelate",
       userId,
       packageKey: pkg.key,
       credits: String(pkg.credits),

@@ -30,6 +30,7 @@ describe("buildCheckoutParams", () => {
   });
   it("carries fulfillment metadata", () => {
     expect(params.metadata).toEqual({
+      source: "reelate",
       userId: "user-1",
       packageKey: "creator",
       credits: "50",
