@@ -55,12 +55,12 @@ export default async function UseCasePage({ params }: PageProps) {
         </Link>
         <nav className="flex items-center gap-3">
           <Link
-            href="/signin"
+            href="/signin?mode=signup"
             className="hidden text-sm font-medium text-muted transition-colors hover:text-bone sm:inline-block"
           >
             Sign in
           </Link>
-          <Link href="/signin" className={buttonClasses("primary")}>
+          <Link href="/signin?mode=signup" className={buttonClasses("primary")}>
             Start free
           </Link>
         </nav>
@@ -75,10 +75,10 @@ export default async function UseCasePage({ params }: PageProps) {
           {useCase.intro}
         </p>
         <Link
-          href="/signin"
+          href="/signin?mode=signup"
           className={buttonClasses("primary", "px-6 py-3 text-base")}
         >
-          Start free &mdash; 5 videos on us
+          Start free &mdash; 5 credits on us
         </Link>
       </section>
 
@@ -134,10 +134,10 @@ export default async function UseCasePage({ params }: PageProps) {
             Type a topic. Post a video.
           </h2>
           <Link
-            href="/signin"
+            href="/signin?mode=signup"
             className={buttonClasses("primary", "px-6 py-3 text-base")}
           >
-            Start free &mdash; 5 videos on us
+            Start free &mdash; 5 credits on us
           </Link>
         </div>
       </section>

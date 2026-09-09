@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { decideAdminRoute, isAdminHost } from "../routing";
 
@@ -45,4 +47,32 @@ describe("decideAdminRoute — admin host", () => {
     expect(decideAdminRoute(HOST, "/api/jobs", true)).toEqual({ action: "rewrite", path: "/404" });
     expect(decideAdminRoute(HOST, "/dashboard", true)).toEqual({ action: "rewrite", path: "/404" });
   });
+});
+
+describe("rewrite targets exist as routes", () => {
+  // /404 var olmayan bir rota olduğu için rewrite Next'in çıplak varsayılan
+  // 404'üne düşüyordu (logo yok, ana sayfa linki yok).
+  const targets = [
+    decideAdminRoute("reelate.org", "/admin", false),
+    decideAdminRoute(HOST, "/api/jobs", true),
+    decideAdminRoute(HOST, "/login", false),
+  ];
+
+  for (const decision of targets) {
+    if (decision.action !== "rewrite") continue;
+    it(`has a page for ${decision.path}`, () => {
+      const dir = join(process.cwd(), "src/app", decision.path);
+      expect(
+        existsSync(join(dir, "page.tsx")) || existsSync(join(dir, "page.ts")),
+      ).toBe(true);
+    });
+  }
+});
+
+describe("branded error pages exist", () => {
+  for (const file of ["not-found.tsx", "error.tsx", "global-error.tsx"]) {
+    it(`src/app/${file} exists`, () => {
+      expect(existsSync(join(process.cwd(), "src/app", file))).toBe(true);
+    });
+  }
 });

@@ -31,7 +31,12 @@ export async function middleware(request: NextRequest) {
       request.cookies.has("__Secure-authjs.session-token");
     if (!hasSessionCookie) {
       const url = new URL("/signin", request.url);
-      url.searchParams.set("callbackUrl", request.nextUrl.href);
+      // Göreli yol: signin sayfası yalnızca uygulama içi yolları kabul eder
+      // (src/lib/auth/callback.ts), mutlak URL sessizce atılırdı.
+      url.searchParams.set(
+        "callbackUrl",
+        `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      );
       return NextResponse.redirect(url);
     }
   }

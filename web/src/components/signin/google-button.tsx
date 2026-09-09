@@ -2,7 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 
-export function GoogleButton() {
+export function GoogleButton({ signup = false }: { signup?: boolean }) {
   const { pending } = useFormStatus();
 
   return (
@@ -22,7 +22,13 @@ export function GoogleButton() {
           </span>
         )}
       </span>
-      <span>{pending ? "Connecting…" : "Continue with Google"}</span>
+      <span>
+        {pending
+          ? "Connecting\u2026"
+          : signup
+            ? "Sign up with Google"
+            : "Continue with Google"}
+      </span>
     </button>
   );
 }

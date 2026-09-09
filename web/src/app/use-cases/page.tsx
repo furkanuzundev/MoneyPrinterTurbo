@@ -21,12 +21,12 @@ export default function UseCasesIndexPage() {
         </Link>
         <nav className="flex items-center gap-3">
           <Link
-            href="/signin"
+            href="/signin?mode=signup"
             className="hidden text-sm font-medium text-muted transition-colors hover:text-bone sm:inline-block"
           >
             Sign in
           </Link>
-          <Link href="/signin" className={buttonClasses("primary")}>
+          <Link href="/signin?mode=signup" className={buttonClasses("primary")}>
             Start free
           </Link>
         </nav>
