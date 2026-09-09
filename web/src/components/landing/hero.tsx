@@ -21,20 +21,20 @@ export function Hero() {
         </h1>
         <p className="mb-[34px] max-w-[460px] text-lg leading-[1.55] text-muted sm:text-[19px]">
           Reelate writes the script, voices it, cuts matching stock footage and
-          burns in captions &mdash; a ready-to-post short in about five
-          minutes. No camera. No editing.
+          burns in captions. You pick the length &mdash; 30s, 60s, 90s or 3 min
+          &mdash; and it renders in about five minutes. No camera. No editing.
         </p>
         <div className="mb-5 flex flex-wrap items-center gap-4">
           <Link
-            href="/signin"
+            href="/signin?mode=signup"
             className="rounded-[13px] bg-caption px-[26px] py-[15px] text-base font-bold text-caption-ink transition-opacity hover:opacity-90"
           >
-            Start free &mdash; 5 videos on us
+            Start free &mdash; 5 credits on us
           </Link>
           <WatchDemoButton />
         </div>
         <p className="font-mono-data text-[13px] text-muted/70">
-          ~5 min per video &middot; no credit card required
+          Renders in ~5 min &middot; no credit card required
         </p>
       </div>
       <HeroPhone />

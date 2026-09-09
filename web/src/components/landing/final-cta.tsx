@@ -10,10 +10,10 @@ export function FinalCta() {
         Start with 5 free videos. No card, no editing, no camera.
       </p>
       <Link
-        href="/signin"
+        href="/signin?mode=signup"
         className="inline-block rounded-[14px] bg-caption-ink px-8 py-4 text-base font-bold text-caption transition-opacity hover:opacity-90"
       >
-        Start free &mdash; 5 videos on us
+        Start free &mdash; 5 credits on us
       </Link>
     </section>
   );

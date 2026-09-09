@@ -9,9 +9,11 @@ import { Hero } from "@/components/landing/hero";
 import { PlatformStrip } from "@/components/landing/platform-strip";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { FeatureBento } from "@/components/landing/feature-bento";
+import { InsideTheEditor } from "@/components/landing/inside-the-editor";
 import { Showcase } from "@/components/landing/showcase";
-import { Testimonial } from "@/components/landing/testimonial";
+import { FactsStrip } from "@/components/landing/facts-strip";
 import { Pricing } from "@/components/landing/pricing";
+import { CreditsFaq } from "@/components/landing/credits-faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { LandingFooter } from "@/components/landing/footer";
 import "./landing.css";
@@ -34,9 +36,11 @@ export default async function Home() {
       <PlatformStrip />
       <HowItWorks />
       <FeatureBento />
+      <InsideTheEditor />
       <Showcase />
-      <Testimonial />
+      <FactsStrip />
       <Pricing packages={packages} />
+      <CreditsFaq />
       <FinalCta />
       <LandingFooter />
     </main>
