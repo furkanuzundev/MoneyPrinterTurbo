@@ -96,7 +96,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "educational-shorts-generator",
     title: "Educational Shorts Generator",
-    h1: "Explain anything in under a minute",
+    h1: "Explain anything in 30 seconds to 3 minutes",
     intro:
       "Reelate is built for the explainer format: give it a concept, and it writes a clear, accurate script, narrates it, and pairs each line with footage that actually illustrates the point.",
     bullets: [
@@ -122,7 +122,7 @@ export const USE_CASES: UseCase[] = [
       "Fast enough to make a fresh promo for every launch or sale",
     ],
     exampleTopics: [
-      "a skincare routine in under 60 seconds",
+      "a skincare routine in 60 seconds",
       "why this planner survives a busy semester",
       "unboxing the small detail customers notice first",
     ],
@@ -215,7 +215,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "history-facts-video-generator",
     title: "History Facts Video Generator",
-    h1: "Bring a piece of history to life in under a minute",
+    h1: "Bring a piece of history to life in 30 to 180 seconds",
     intro:
       "Historical facts stand out when they're specific — Reelate writes a script around a real event or figure, narrates it, and pairs it with footage that sets the scene instead of generic filler.",
     bullets: [

@@ -3,7 +3,13 @@
 import { useRef, useState } from "react";
 
 import { creditsForDuration } from "@/lib/credits/pricing";
-import { ASPECTS, DURATION_OPTIONS, LANGUAGES, VOICES } from "@/lib/jobs/options";
+import {
+  ASPECTS,
+  DURATION_OPTIONS,
+  LANGUAGES,
+  VOICES,
+  formatDuration,
+} from "@/lib/jobs/options";
 import type { CaptionStyle } from "@/lib/jobs/scenes";
 import {
   captionPreviewStyles,
@@ -20,10 +26,6 @@ const ASPECT_META: Record<string, { sub: string; w: number; h: number }> = {
   "1:1": { sub: "Feed post", w: 30, h: 30 },
   "16:9": { sub: "YouTube", w: 36, h: 20 },
 };
-
-function durationLabel(s: number) {
-  return s >= 60 ? (s % 60 === 0 ? `${s / 60}m` : `${s}s`) : `${s}s`;
-}
 
 // "Jenny (US, Female)" → { name: "Jenny", meta: "EN · US" }
 function voiceDisplay(v: (typeof VOICES)[number]) {
@@ -123,10 +125,7 @@ export function BriefStep({
 
   const voices = VOICES.filter((v) => v.language === values.language);
   const canGenerate = values.subject.trim().length > 0 && !busy;
-  const lengthLabel =
-    values.targetSeconds >= 60
-      ? `${values.targetSeconds / 60} min`
-      : `${values.targetSeconds} sec`;
+  const lengthLabel = formatDuration(values.targetSeconds);
   const languageLabel =
     LANGUAGES.find((l) => l.code === values.language)?.label ?? values.language;
   const voiceLabel = voices.find((v) => v.id === values.voice)
@@ -166,7 +165,16 @@ export function BriefStep({
                   : "text-muted hover:text-bone"
               }`}
             >
-              {durationLabel(s)}
+              <span className="block">{formatDuration(s)}</span>
+              <span
+                className={`mt-0.5 block font-mono-data text-[10.5px] font-normal ${
+                  values.targetSeconds === s
+                    ? "text-caption-ink/70"
+                    : "text-muted/70"
+                }`}
+              >
+                {creditsForDuration(s)} cr
+              </span>
             </button>
           ))}
         </div>

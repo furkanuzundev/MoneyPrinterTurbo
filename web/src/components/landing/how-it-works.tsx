@@ -18,14 +18,14 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="px-6 py-20 md:px-12 lg:px-[72px]">
+    <section id="how-it-works" className="scroll-mt-[72px] px-6 py-20 md:px-12 lg:px-[72px]">
       <div className="mb-11 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-3 font-mono-data text-[12.5px] uppercase tracking-[0.1em] text-caption-dim">
             How it works
           </div>
           <h2 className="font-display text-3xl font-extrabold tracking-[-0.02em] text-bone lg:text-[42px]">
-            Three fields. Five minutes. Done.
+            Three fields. Five minutes to render. Done.
           </h2>
         </div>
         <p className="max-w-[300px] text-[15px] text-muted">

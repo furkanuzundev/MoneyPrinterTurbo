@@ -99,3 +99,12 @@ export const VOICES = [
 export const ASPECTS = ["9:16", "16:9", "1:1"] as const;
 export const DURATION_OPTIONS = [30, 60, 90, 180] as const;
 export const MAX_SCRIPT_WORDS = 1200;
+
+// Tek kanonik süre etiketi. Daha önce brief-step "30s/1m/90s/3m", özet
+// paneli "1.5 min" basıyordu; aynı seçim için üç farklı yazım kullanıcıya
+// farklı seçenekler varmış gibi görünüyordu.
+export function formatDuration(seconds: number): string {
+  if (seconds < 120) return `${seconds}s`;
+  const minutes = seconds / 60;
+  return `${Number.isInteger(minutes) ? minutes : minutes.toFixed(1)} min`;
+}

@@ -1,6 +1,16 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/db";
+import { CreditCostTable } from "@/components/credits/credit-cost-table";
+import {
+  CREDITS_FREE_NOTE,
+  CREDITS_REFUND_NOTE,
+  CREDITS_RETRY_NOTE,
+  CREDITS_TAGLINE,
+  CREDITS_PER_REFERENCE_VIDEO,
+  formatCreditsForPack,
+  perVideoCents,
+} from "@/lib/credits/copy";
 import { getPackages } from "@/lib/credits/packages";
 import { getBalance } from "@/lib/credits/ledger";
 import { BuyButton } from "./buy-button";
@@ -18,9 +28,11 @@ export default async function BuyPage() {
     getPackages(db),
     getBalance(db, userId),
   ]);
+  // Video başı fiyat 60 sn referans videoya göre; bir kredi bir video değil.
   const baselinePerVideo = Math.max(
-    ...packages.map((pkg) => pkg.amountCents / pkg.credits),
+    ...packages.map((pkg) => perVideoCents(pkg.amountCents, pkg.credits)),
   );
+  const videosLeft = Math.floor(balance / CREDITS_PER_REFERENCE_VIDEO);
 
   return (
     <div>
@@ -28,8 +40,10 @@ export default async function BuyPage() {
         <h1 className="mb-1.5 font-display text-3xl font-extrabold tracking-[-0.02em] text-bone lg:text-[34px]">
           Buy credits
         </h1>
-        <p className="text-[15px] text-muted">
-          Credits never expire. One credit &asymp; one short video.
+        <p className="text-[15px] text-muted">{CREDITS_TAGLINE}</p>
+        <CreditCostTable className="mt-4 justify-start" />
+        <p className="mt-3.5 max-w-[560px] text-[13.5px] leading-relaxed text-muted/80">
+          {CREDITS_REFUND_NOTE} {CREDITS_RETRY_NOTE} {CREDITS_FREE_NOTE}
         </p>
       </div>
 
@@ -48,16 +62,14 @@ export default async function BuyPage() {
           </div>
         </div>
         <span className="font-mono-data text-xs text-muted/80">
-          &asymp; {balance} more videos
+          &asymp; {videosLeft} more 60s {videosLeft === 1 ? "video" : "videos"}
         </span>
       </div>
 
       <div className="grid items-stretch gap-5 pt-3 sm:grid-cols-3">
         {packages.map((pkg) => {
-          const perVideoCents = pkg.amountCents / pkg.credits;
-          const savePercent = Math.round(
-            (1 - perVideoCents / baselinePerVideo) * 100,
-          );
+          const cents = perVideoCents(pkg.amountCents, pkg.credits);
+          const savePercent = Math.round((1 - cents / baselinePerVideo) * 100);
           const features = FEATURES[pkg.key] ?? FEATURES.default;
 
           return (
@@ -79,14 +91,14 @@ export default async function BuyPage() {
                 ${(pkg.amountCents / 100).toFixed(0)}
               </div>
               <div className="text-sm text-muted">
-                {pkg.credits} credits &middot; ~{pkg.credits} shorts
+                {formatCreditsForPack(pkg.credits)}
               </div>
               <div
                 className={`mt-[5px] font-mono-data text-xs ${
                   pkg.featured ? "text-caption-dim" : "text-muted/80"
                 }`}
               >
-                &asymp; ${(perVideoCents / 100).toFixed(2)} / video
+                &asymp; ${(cents / 100).toFixed(2)} / 60s video
                 {savePercent > 0 ? ` · save ${savePercent}%` : ""}
               </div>
               <div className="my-5 h-px bg-white/5" />
