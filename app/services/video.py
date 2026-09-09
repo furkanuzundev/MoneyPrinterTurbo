@@ -28,6 +28,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from app.config import config
 from app.models import const
+from app.services import fonts
 from app.models.schema import (
     MaterialInfo,
     VideoAspect,
@@ -921,6 +922,20 @@ def _get_visible_center_position(
     return x, y
 
 
+def resolve_subtitle_font(params) -> str:
+    """字幕字体文件名：调用方显式指定优先，否则按视频语言挑选。
+
+    历史默认值是 CJK 字体 `STHeitiMedium.ttc`，对拉丁文脚本会把 U+2019
+    画成全角，并且完全没有越南语字形。见 `app/services/fonts.py`。
+    """
+    if params.font_name:
+        return params.font_name
+    sample = " ".join(
+        (s.voiceover or "") for s in (getattr(params, "scenes", None) or [])
+    ) or (getattr(params, "video_script", "") or "")
+    return fonts.font_for_language(getattr(params, "video_language", ""), sample)
+
+
 def generate_video(
     video_path: str,
     audio_path: str,
@@ -944,8 +959,7 @@ def generate_video(
 
     font_path = ""
     if params.subtitle_enabled:
-        if not params.font_name:
-            params.font_name = "STHeitiMedium.ttc"
+        params.font_name = resolve_subtitle_font(params)
         font_path = os.path.join(utils.font_dir(), params.font_name)
         if os.name == "nt":
             font_path = font_path.replace("\\", "/")

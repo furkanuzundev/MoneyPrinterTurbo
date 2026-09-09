@@ -251,6 +251,39 @@ class TestTaskService(unittest.TestCase):
         create_subtitle.assert_not_called()
         whisper_create.assert_not_called()
 
+    def test_generate_scene_subtitle_normalizes_typographic_punctuation(self):
+        """
+        SRT'ye yazilan metin ASCII noktalama tasimali. U+2019 gomulu CJK
+        fontlarda tam-genislik cizildigi icin "it's" yanmis altyazida
+        "it ' s" gibi gorunuyordu.
+        """
+        from app.models.schema import SceneItem
+
+        tmp = tempfile.mkdtemp()
+        try:
+            params = VideoParams(
+                video_subject="habits",
+                video_script="x",
+                subtitle_enabled=True,
+                scenes=[
+                    SceneItem(caption="Hook", voiceover="It\u2019s simple \u2014 really."),
+                    SceneItem(caption="CTA", voiceover="\u201cTry it\u201d today\u2026"),
+                ],
+            )
+            with patch.object(tm.utils, "task_dir", return_value=tmp):
+                srt_path = tm.generate_scene_subtitle("t-norm", params, audio_duration=6.0)
+
+            with open(srt_path, encoding="utf-8") as f:
+                content = f.read()
+
+            self.assertIn("It's simple - really.", content)
+            self.assertIn('"Try it" today...', content)
+            self.assertNotIn("\u2019", content)
+            self.assertNotIn("\u201c", content)
+            self.assertNotIn("\u2026", content)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_generate_scene_subtitle_uses_voiceover_not_caption(self):
         """
         Sahne modu fallback altyazısı (sub_maker yok) konuşulan voiceover

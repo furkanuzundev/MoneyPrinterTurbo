@@ -54,6 +54,14 @@ const LANGUAGE_NAMES: Record<string, string> = {
   "fa-IR": "Persian",
 };
 
+// Yanmış altyazılar tek bir TrueType dosyasıyla çiziliyor; kıvrık tırnaklar
+// CJK fontlarda tam-genişlik geliyor. Motor bunu yine de normalize ediyor
+// (app/utils/utils.py normalize_punctuation), bu satır sadece girdiyi
+// baştan temiz tutuyor.
+const PUNCTUATION_RULE =
+  "Use straight ASCII punctuation only: ' and \" \u2014 never curly quotes, " +
+  "en/em dashes, or the ellipsis character.";
+
 export function buildScriptPrompt(
   subject: string,
   language: string,
@@ -66,7 +74,9 @@ export function buildScriptPrompt(
     `Language: ${languageName}. Target length: about ${words} words.`,
     "Rules: plain spoken prose only; no markdown, no headings, no emojis,",
     "no scene directions, no hashtags; hook the viewer in the first sentence;",
-    "end with a single memorable takeaway. Return only the script text.",
+    "end with a single memorable takeaway.",
+    PUNCTUATION_RULE,
+    "Return only the script text.",
   ].join("\n");
 }
 
@@ -87,6 +97,7 @@ export function buildScenesPrompt(
     '- "caption": the on-screen text, max 8 punchy words',
     '- "voiceover": the spoken narration for that scene, plain prose, no emojis/hashtags',
     "Also give 5 short English stock-footage search terms matching the video.",
+    PUNCTUATION_RULE,
     "Return ONLY a JSON object, no code fences:",
     '{"scenes":[{"tag":"HOOK","caption":"…","voiceover":"…"}],"terms":["…"]}',
   ].join("\n");

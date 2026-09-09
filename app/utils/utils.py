@@ -243,6 +243,46 @@ def split_string_by_punctuations(s):
     return result
 
 
+# 排版引号/破折号 → ASCII。烧录字幕使用 PIL 逐字测量，而 U+2019 在
+# STHeitiMedium / MicrosoftYaHei 这类 CJK 字体里是全角字形（60px 字号下
+# 单个 ' 就占 60px，而 ASCII ' 只占 12px），导致 "it's" 渲染成 "it ' s"，
+# 并且同一套测量还会污染 wrap_text 的换行结果。
+# 注意：这里刻意不动 CJK 全角标点（，。！？「」），它们是有意为之且能正确渲染。
+_PUNCTUATION_REPLACEMENTS = {
+    "\u2018": "'",  # left single quotation mark
+    "\u2019": "'",  # right single quotation mark / apostrophe
+    "\u201a": "'",  # single low-9 quotation mark
+    "\u201b": "'",  # single high-reversed-9 quotation mark
+    "\u2032": "'",  # prime
+    "\u201c": '"',  # left double quotation mark
+    "\u201d": '"',  # right double quotation mark
+    "\u201e": '"',  # double low-9 quotation mark
+    "\u201f": '"',  # double high-reversed-9 quotation mark
+    "\u2033": '"',  # double prime
+    "\u2013": "-",  # en dash
+    "\u2014": "-",  # em dash
+    "\u2015": "-",  # horizontal bar
+    "\u2026": "...",  # horizontal ellipsis
+    "\u00a0": " ",  # no-break space
+    "\u2009": " ",  # thin space
+    "\u200a": " ",  # hair space
+    "\u202f": " ",  # narrow no-break space
+}
+
+_PUNCTUATION_PATTERN = re.compile(
+    "|".join(re.escape(ch) for ch in _PUNCTUATION_REPLACEMENTS)
+)
+
+
+def normalize_punctuation(text: str) -> str:
+    """把排版标点替换成 ASCII 等价物，供字幕与配音文本共用。"""
+    if not text:
+        return ""
+    return _PUNCTUATION_PATTERN.sub(
+        lambda m: _PUNCTUATION_REPLACEMENTS[m.group(0)], text
+    )
+
+
 def normalize_script_for_subtitle_matching(video_script: str) -> str:
     """
     清理字幕匹配前的脚本文本。

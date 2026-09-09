@@ -65,3 +65,15 @@ describe("parseTerms", () => {
     expect(parseTerms('["1","2","3","4","5","6","7"]')).toHaveLength(5);
   });
 });
+
+describe("straight-quote instruction", () => {
+  // Engine tarafı U+2019'u ASCII'ye normalize ediyor (app/utils/utils.py),
+  // ama girdiyi baştan temiz istemek normalize edilecek metni azaltıyor.
+  const expected = "straight ASCII punctuation";
+  it("is present in the plain script prompt", () => {
+    expect(buildScriptPrompt("x", "en", 60)).toContain(expected);
+  });
+  it("is present in the scenes prompt", () => {
+    expect(buildScenesPrompt("x", "en", 60)).toContain(expected);
+  });
+});

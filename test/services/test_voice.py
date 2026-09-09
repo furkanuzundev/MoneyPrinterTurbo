@@ -956,3 +956,15 @@ if __name__ == "__main__":
     # python -m unittest test.services.test_voice.TestVoiceService.test_azure_tts_v1
     # python -m unittest test.services.test_voice.TestVoiceService.test_azure_tts_v2
     unittest.main() 
+
+
+class TestFormatTextPunctuation(unittest.TestCase):
+    def test_format_text_normalizes_typographic_punctuation(self):
+        """
+        Altyazi hizalamasi ile yanmis altyazi ayni stringi gormeli; aksi
+        halde U+2019 CJK fontlarda tam-genislik cizilir.
+        """
+        self.assertEqual(vs._format_text("It’s “fine”…"), 'It\'s "fine"...')
+
+    def test_format_text_keeps_existing_bracket_stripping(self):
+        self.assertEqual(vs._format_text("a [b] (c)").strip(), "a  b   c")

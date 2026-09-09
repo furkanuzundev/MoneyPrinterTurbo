@@ -638,3 +638,49 @@ class TestVideoService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSubtitleFontResolution(unittest.TestCase):
+    def _params(self, **kw):
+        from app.models.schema import VideoParams
+        return VideoParams(video_subject="x", **kw)
+
+    def test_empty_font_name_picks_the_font_for_the_video_language(self):
+        p = self._params(video_language="vi-VN", font_name=None)
+        self.assertEqual(vd.resolve_subtitle_font(p), "BeVietnamPro-Bold.ttf")
+
+    def test_english_gets_the_latin_font_instead_of_the_cjk_default(self):
+        p = self._params(video_language="en-US", font_name=None)
+        self.assertEqual(vd.resolve_subtitle_font(p), "BeVietnamPro-Bold.ttf")
+
+    def test_chinese_keeps_the_previous_default(self):
+        p = self._params(video_language="zh-CN", font_name=None)
+        self.assertEqual(vd.resolve_subtitle_font(p), "STHeitiMedium.ttc")
+
+    def test_explicit_font_name_wins(self):
+        p = self._params(video_language="en-US", font_name="Charm-Bold.ttf")
+        self.assertEqual(vd.resolve_subtitle_font(p), "Charm-Bold.ttf")
+
+    def test_missing_language_falls_back_to_the_previous_default(self):
+        p = self._params(video_language="", font_name=None)
+        self.assertEqual(vd.resolve_subtitle_font(p), "STHeitiMedium.ttc")
+
+    def test_scene_text_drives_the_mixed_script_fallback(self):
+        from app.models.schema import SceneItem
+        p = self._params(
+            video_language="en-US",
+            font_name=None,
+            scenes=[SceneItem(caption="c", voiceover="Try 小米 today")],
+        )
+        self.assertEqual(vd.resolve_subtitle_font(p), "STHeitiMedium.ttc")
+
+
+class TestSubtitleFontDefault(unittest.TestCase):
+    def test_params_built_without_a_font_name_still_pick_by_language(self):
+        """
+        Web hiçbir zaman `font_name` göndermiyor; schema varsayilani dolu
+        kalirsa dil haritasi hiç devreye girmez.
+        """
+        from app.models.schema import VideoParams
+        p = VideoParams(video_subject="x", video_language="en-US")
+        self.assertEqual(vd.resolve_subtitle_font(p), "BeVietnamPro-Bold.ttf")

@@ -1455,6 +1455,8 @@ def _format_text(text: str) -> str:
     对齐仍保留这些字符，`create_subtitle()` 会一直等待不存在的 cue，
     最终导致字幕文件缺失并在 Whisper fallback 校正时补出全 0 时间轴。
     """
+    # 排版引号/破折号统一成 ASCII，保证配音文本与字幕文本逐字一致。
+    text = utils.normalize_punctuation(text)
     text = text.replace("[", " ")
     text = text.replace("]", " ")
     text = text.replace("(", " ")
