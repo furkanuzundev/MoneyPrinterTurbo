@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  CaptionSafeVideo,
+  captionSafeMaxWidth,
+} from "@/components/video/caption-safe-video";
 
 // Her kart bir Reelate çıktısıdır. Videolar public/showcase/showcase-{1,2,3}.mp4
 // (+ .jpg poster) olarak beklenir. Kartlar sessiz döngüde önizleme oynatır;
@@ -52,6 +56,8 @@ function ShowcaseCard({
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+    // "Reduce Motion" açıkken otomatik oynatma yok; poster + play ikonu kalır.
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -89,16 +95,22 @@ function ShowcaseCard({
           onError={() => setFailed(true)}
         />
       ) : null}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
-      {/* Play afordansı: sesli açılacağını belli eder. */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+      {/* Üstten gradient: alt kenarda kalan burned-in altyazıları örtmemeli. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent" />
+      {/* Play afordansı. Dokunmatikte hover yok, bu yüzden mobilde daima
+          görünür; masaüstünde hover/focus ile tam opaklığa çıkar. */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 opacity-100 transition-opacity lg:opacity-70 lg:group-hover:opacity-100 group-focus-visible:opacity-100">
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-caption text-caption-ink shadow-lg">
           <svg viewBox="0 0 24 24" className="ml-0.5 h-6 w-6" fill="currentColor" aria-hidden>
             <path d="M8 5v14l11-7z" />
           </svg>
         </span>
+        <span className="rounded-full bg-black/55 px-2.5 py-1 font-mono-data text-[10.5px] uppercase tracking-[0.07em] text-bone/95 backdrop-blur-sm">
+          Tap for sound
+        </span>
       </div>
-      <div className="pointer-events-none absolute bottom-3.5 left-3.5 rounded-md bg-black/40 px-2 py-1 font-mono-data text-[11px] text-bone/90 backdrop-blur-sm">
+      {/* Meta etiketi üstte: altta burned-in altyazı bandının üzerine düşüyordu. */}
+      <div className="pointer-events-none absolute left-3.5 top-3.5 rounded-md bg-black/40 px-2 py-1 font-mono-data text-[11px] text-bone/90 backdrop-blur-sm">
         {item.meta}
       </div>
     </button>
@@ -136,10 +148,13 @@ function VideoDialog({
       aria-label={`Reelate short: ${item.meta}`}
       onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[88vh] w-full max-w-[380px] flex-col"
+        className="relative flex w-full flex-col"
+        // Genişliği yükseklikten türet: 9:16 kare + kontrol şeridi ekranı aşmasın.
+        style={{ maxWidth: captionSafeMaxWidth(380) }}
       >
         <button
           ref={closeRef}
@@ -152,14 +167,11 @@ function VideoDialog({
             <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
           </svg>
         </button>
-        {/* Altyazılar görüntüye burned-in olduğu için ayrı <track> yok. */}
-        <video
-          className="max-h-[88vh] w-full rounded-[18px] border border-white/10 bg-black object-contain"
+        <CaptionSafeVideo
           src={item.src}
           poster={item.poster}
-          controls
           autoPlay
-          playsInline
+          className="rounded-[18px] border border-white/10"
         />
       </div>
     </div>
@@ -170,7 +182,7 @@ export function Showcase() {
   const [active, setActive] = useState<ShowcaseItem | null>(null);
 
   return (
-    <section id="showcase" className="px-6 pb-[84px] md:px-12 lg:px-[72px]">
+    <section id="showcase" className="scroll-mt-[72px] px-6 pb-[84px] md:px-12 lg:px-[72px]">
       <div className="mb-3 font-mono-data text-[12.5px] uppercase tracking-[0.1em] text-caption-dim">
         Showcase
       </div>

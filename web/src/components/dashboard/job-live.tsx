@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { RENDER_STAGES, stageIndexForProgress } from "@/lib/jobs/stages";
 import { PostTo } from "./post-to";
+import { CaptionSafeVideo } from "@/components/video/caption-safe-video";
 
 type JobEvent = {
   status: string;
@@ -164,15 +165,9 @@ function DoneView({
       <div className="rePop flex justify-center">
         <div className="relative">
           <div className="absolute -inset-6 bg-[radial-gradient(circle_at_50%_40%,rgba(244,198,58,0.2),transparent_65%)] blur-lg" />
-          <div className="relative h-[440px] w-[248px] rounded-[30px] border border-white/10 bg-elevated p-[11px] shadow-[0_34px_80px_rgba(0,0,0,0.55)]">
-            <div className="relative h-full w-full overflow-hidden rounded-[22px] bg-black">
-              <video
-                className="absolute inset-0 h-full w-full object-cover"
-                src={`/api/videos/${jobId}`}
-                controls
-                playsInline
-                preload="metadata"
-              />
+          <div className="relative h-[527px] w-[248px] rounded-[30px] border border-white/10 bg-elevated p-[11px] shadow-[0_34px_80px_rgba(0,0,0,0.55)]">
+            <div className="flex h-full w-full items-center overflow-hidden rounded-[22px] bg-black">
+              <CaptionSafeVideo src={`/api/videos/${jobId}`} />
             </div>
           </div>
         </div>

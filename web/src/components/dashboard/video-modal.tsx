@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { VideoCardData } from "./video-grid";
+import { CaptionSafeVideo } from "@/components/video/caption-safe-video";
 
 const POST_TARGETS = [
   { label: "TikTok", href: "https://www.tiktok.com/upload" },
@@ -56,14 +57,8 @@ export function VideoModal({
         onClick={(e) => e.stopPropagation()}
         className="grid max-h-full w-full max-w-[780px] overflow-y-auto rounded-[22px] border border-white/10 bg-[#141310] shadow-[0_40px_100px_rgba(0,0,0,0.6)] sm:grid-cols-[280px_1fr]"
       >
-        <div className="relative min-h-[320px] bg-black sm:min-h-[500px]">
-          <video
-            className="absolute inset-0 h-full w-full object-contain"
-            src={`/api/videos/${video.id}`}
-            controls
-            playsInline
-            preload="metadata"
-          />
+        <div className="flex items-center justify-center bg-black">
+          <CaptionSafeVideo src={`/api/videos/${video.id}`} />
         </div>
         <div className="relative p-6 sm:p-7">
           <button
