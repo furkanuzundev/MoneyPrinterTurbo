@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import type { GaIds } from "@/lib/analytics/ga-ids";
 import type { CreditPackage } from "./packages";
 
 export function buildCheckoutParams(
@@ -6,6 +7,7 @@ export function buildCheckoutParams(
   userId: string,
   appUrl: string,
   taxEnabled: boolean,
+  ga: GaIds = {},
 ): Stripe.Checkout.SessionCreateParams {
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
@@ -24,6 +26,9 @@ export function buildCheckoutParams(
       userId,
       packageKey: pkg.key,
       credits: String(pkg.credits),
+      // Webhook'taki server-side GA purchase'ı tarayıcı oturumuna bağlar.
+      ...(ga.clientId && { ga_client_id: ga.clientId }),
+      ...(ga.sessionId && { ga_session_id: ga.sessionId }),
     },
     success_url: `${appUrl}/dashboard/buy/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/dashboard/buy`,

@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
 import { Pool } from "pg";
 import Stripe from "stripe";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "@/db/schema";
 import { getBalance } from "@/lib/credits/ledger";
 import { handleStripeEvent } from "@/lib/credits/stripe-events";
@@ -87,5 +87,38 @@ describe("handleStripeEvent", () => {
     };
     await expect(handleStripeEvent(db, ev)).resolves.toBeUndefined();
     expect(await getBalance(db, userId)).toBe(0);
+  });
+
+  it("reports a purchase to GA once, on first fulfillment only", async () => {
+    const report = vi.fn().mockResolvedValue("sent");
+    const ev = completedEvent("cs_ga");
+    const obj = ev.data.object as Stripe.Checkout.Session;
+    obj.currency = "usd";
+    obj.total_details = { amount_discount: 0, amount_shipping: 0, amount_tax: 0 };
+    obj.metadata = {
+      ...obj.metadata,
+      ga_client_id: "123.456",
+      ga_session_id: "1726480000",
+    };
+    await handleStripeEvent(db, ev, report);
+    await handleStripeEvent(db, ev, report);
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledWith({
+      clientId: "123.456",
+      sessionId: "1726480000",
+      userId,
+      transactionId: "cs_ga",
+      amountTotalCents: 1900,
+      amountTaxCents: 0,
+      currency: "usd",
+      packageKey: "creator",
+      credits: 50,
+    });
+  });
+
+  it("still credits when the GA report fails", async () => {
+    const report = vi.fn().mockResolvedValue("failed");
+    await handleStripeEvent(db, completedEvent("cs_ga2"), report);
+    expect(await getBalance(db, userId)).toBe(50);
   });
 });
