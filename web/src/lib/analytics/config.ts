@@ -2,7 +2,7 @@
 // görünür), bu yüzden kodda sabit: web/.env.* dosyaları .gitignore ve
 // .dockerignore dışında kaldığı için build-time env Docker build'e ulaşmaz.
 // Boşken hiçbir analytics kodu yüklenmez. Kurulum: deploy/ANALYTICS.md.
-const PRODUCTION_MEASUREMENT_ID = "";
+const PRODUCTION_MEASUREMENT_ID = "G-CW5BEZD393";
 
 const ENV_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
 
