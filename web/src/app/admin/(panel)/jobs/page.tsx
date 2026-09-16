@@ -55,6 +55,7 @@ export default async function AdminJobsPage({
               <th className="px-3 py-2 text-right font-medium">Süre hedefi</th>
               <th className="px-3 py-2 font-medium">Son güncelleme</th>
               <th className="px-3 py-2 font-medium">Hata</th>
+              <th className="px-3 py-2 font-medium">Video</th>
             </tr>
           </thead>
           <tbody>
@@ -75,11 +76,20 @@ export default async function AdminJobsPage({
                 <td className="max-w-72 truncate px-3 py-2 text-muted-foreground" title={j.error ?? undefined}>
                   {j.error ?? "—"}
                 </td>
+                <td className="px-3 py-2">
+                  {j.status === "done" ? (
+                    <Link href={`/jobs/${j.id}`} className="underline-offset-2 hover:underline">
+                      İzle
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
               </tr>
             ))}
             {jobs.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
                   Job bulunamadı.
                 </td>
               </tr>
