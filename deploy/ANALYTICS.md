@@ -23,7 +23,7 @@ Admin host (`admin.reelate.org`) ve localhost hiç ölçülmez.
 
 **Onay (Consent Mode v2):** Her ziyaretçi "denied" başlar; banner'da Accept →
 `analytics_storage=granted`. Reject/yanıtsız → çerez yok, Google'a yalnızca
-çerezsiz anonim ping gider (Google bunlarla modelleme yapar). Reklam sinyalleri
+çerezsiz, tanımlayıcısız sınırlı ping gider (Google bunlarla modelleme yapar; user_id eklenmez). Reklam sinyalleri
 (`ad_*`) hep denied. Kullanıcı footer/yasal sayfalardaki "Cookie settings" ile
 kararını değiştirebilir; reddedince `_ga` çerezleri silinir.
 
