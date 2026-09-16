@@ -43,6 +43,17 @@ describe("buildPurchasePayload", () => {
       ],
     });
   });
+  it("backdates the event to when the payment happened (within GA's 72h window)", () => {
+    const now = new Date("2026-09-16T12:00:00Z");
+    const occurredAt = new Date("2026-09-16T09:00:00Z");
+    expect(buildPurchasePayload({ ...purchase, occurredAt }, now).timestamp_micros).toBe(
+      occurredAt.getTime() * 1000,
+    );
+    const tooOld = new Date("2026-09-13T11:00:00Z");
+    expect(buildPurchasePayload({ ...purchase, occurredAt: tooOld }, now)).not.toHaveProperty(
+      "timestamp_micros",
+    );
+  });
   it("omits session_id when unknown", () => {
     const payload = buildPurchasePayload({ ...purchase, sessionId: undefined });
     expect("session_id" in payload.events[0].params).toBe(false);

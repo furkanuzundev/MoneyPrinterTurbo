@@ -54,12 +54,18 @@ export default function PrivacyPage() {
           are signed in we attach an internal account ID, never your name or
           email. Google processes this data on our behalf; we don&apos;t use it
           for advertising and don&apos;t enable Google&apos;s ad
-          personalization.
+          personalization. Analytics data is kept for 14 months. Google LLC
+          may process it in the United States, under the EU Standard
+          Contractual Clauses and the EU–US Data Privacy Framework.
         </p>
         <p className="mt-3">
           If you click &ldquo;Reject&rdquo; (or ignore the banner), no
-          analytics cookies are set; Google may receive anonymous,
-          cookieless signals that cannot identify you. You can change your
+          analytics cookies are set and no account ID is attached. Google
+          still receives limited cookieless pings (for example the page
+          visited, browser and device type, and approximate country) without
+          any cookie or identifier, which it uses for aggregate modelling.
+          Your IP address is used to deliver these requests but is not stored
+          by Google Analytics. You can change your
           choice at any time via &ldquo;Cookie settings&rdquo; at the bottom
           of this page or the site footer; rejecting removes existing
           analytics cookies.

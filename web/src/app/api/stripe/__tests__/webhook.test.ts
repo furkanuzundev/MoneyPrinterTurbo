@@ -25,6 +25,7 @@ afterAll(() => pool.end());
 function completedEvent(sessionId: string): Stripe.Event {
   return {
     id: `evt_${sessionId}`,
+    created: 1726480000,
     type: "checkout.session.completed",
     data: {
       object: {
@@ -113,12 +114,21 @@ describe("handleStripeEvent", () => {
       currency: "usd",
       packageKey: "creator",
       credits: 50,
+      occurredAt: new Date(1726480000 * 1000),
     });
   });
 
-  it("still credits when the GA report fails", async () => {
-    const report = vi.fn().mockResolvedValue("failed");
-    await handleStripeEvent(db, completedEvent("cs_ga2"), report);
+  it("still credits when the GA report fails or throws", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const failed = vi.fn().mockResolvedValue("failed");
+    await handleStripeEvent(db, completedEvent("cs_ga2"), failed);
     expect(await getBalance(db, userId)).toBe(50);
+    const throws = vi.fn(() => {
+      throw new Error("boom");
+    });
+    await expect(
+      handleStripeEvent(db, completedEvent("cs_ga3"), throws),
+    ).resolves.toBeUndefined();
+    expect(await getBalance(db, userId)).toBe(100);
   });
 });

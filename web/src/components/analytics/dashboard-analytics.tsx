@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { setUserId, track } from "@/lib/analytics/gtag";
+import { clearUserId, setUserId, track } from "@/lib/analytics/gtag";
 
 const SIGNUP_FLAG = "reelate_signup_tracked";
 
@@ -15,6 +15,10 @@ export function DashboardAnalytics({
 }) {
   useEffect(() => {
     setUserId(userId);
+    return clearUserId;
+  }, [userId]);
+
+  useEffect(() => {
     if (!isNewUser) return;
     try {
       const key = `${SIGNUP_FLAG}:${userId}`;

@@ -3,7 +3,10 @@ import type Stripe from "stripe";
 import type { Db } from "@/db";
 import { users } from "@/db/schema";
 import { sanitizeGaIds } from "@/lib/analytics/ga-ids";
-import { sendPurchaseEvent } from "@/lib/analytics/measurement-protocol";
+import {
+  type PurchaseInput,
+  sendPurchaseEvent,
+} from "@/lib/analytics/measurement-protocol";
 import { fulfillPurchase } from "@/lib/credits/purchases";
 
 /**
@@ -21,7 +24,7 @@ import { fulfillPurchase } from "@/lib/credits/purchases";
 export async function handleStripeEvent(
   db: Db,
   event: Stripe.Event,
-  reportPurchase: typeof sendPurchaseEvent = sendPurchaseEvent,
+  reportPurchase: (input: PurchaseInput) => unknown = sendPurchaseEvent,
 ) {
   if (event.type !== "checkout.session.completed") return;
   const session = event.data.object as Stripe.Checkout.Session;
@@ -68,17 +71,23 @@ export async function handleStripeEvent(
   );
 
   // Yalnızca ilk teslimatta: tekrar gelen webhook GA'da çift gelir yazmasın.
-  // sendPurchaseEvent throw etmez; kredi zaten yüklendi.
+  // Kredi zaten yüklendi; enjekte edilen raporlayıcı ne yaparsa yapsın
+  // webhook 500'e dönmemeli (Stripe retry'ı analytics yüzünden tetiklenmesin).
   if (credited) {
-    await reportPurchase({
-      ...sanitizeGaIds({ gaClientId, gaSessionId }),
-      userId,
-      transactionId: session.id,
-      amountTotalCents: session.amount_total ?? 0,
-      amountTaxCents: session.total_details?.amount_tax ?? 0,
-      currency: session.currency ?? "usd",
-      packageKey,
-      credits,
-    });
+    try {
+      await reportPurchase({
+        ...sanitizeGaIds({ gaClientId, gaSessionId }),
+        userId,
+        transactionId: session.id,
+        amountTotalCents: session.amount_total ?? 0,
+        amountTaxCents: session.total_details?.amount_tax ?? 0,
+        currency: session.currency ?? "usd",
+        packageKey,
+        credits,
+        occurredAt: new Date(event.created * 1000),
+      });
+    } catch (e) {
+      console.error(`ga purchase report failed for ${session.id}`, e);
+    }
   }
 }

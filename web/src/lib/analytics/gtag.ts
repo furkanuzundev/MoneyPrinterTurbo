@@ -10,6 +10,8 @@ type GtagWindow = Window & {
   dataLayer?: unknown[];
   gtag?: (...args: unknown[]) => void;
   __reelateGa?: boolean;
+  /** Onay beklerken tutulan hesap id'si; onay gelince GA'ya bağlanır. */
+  __reelateUid?: string | null;
 };
 
 export type GaItem = {
@@ -77,9 +79,23 @@ export function track<K extends keyof EventParams>(name: K, params: EventParams[
   gaWindow()!.gtag!("event", name, params);
 }
 
+/**
+ * user_id yalnızca analytics onayı varsa gönderilir: onaysız çerezsiz
+ * ping'lere kalıcı hesap kimliği eklenmemeli (gizlilik metni bunu vaat ediyor).
+ */
 export function setUserId(userId: string) {
   if (!initGtag()) return;
-  gaWindow()!.gtag!("set", { user_id: userId });
+  const w = gaWindow()!;
+  w.__reelateUid = userId;
+  if (getStoredConsent() === "granted") w.gtag!("set", { user_id: userId });
+}
+
+/** Dashboard'dan çıkınca (ör. sign-out sonrası landing) hesap kimliğini düşür. */
+export function clearUserId() {
+  const w = gaWindow();
+  if (!w?.__reelateUid || !initGtag()) return;
+  w.__reelateUid = null;
+  w.gtag!("set", { user_id: null });
 }
 
 export function getStoredConsent(): ConsentChoice | null {
@@ -90,7 +106,12 @@ export function setConsent(choice: ConsentChoice) {
   const w = gaWindow();
   if (!w) return;
   document.cookie = serializeConsent(choice, w.location.protocol === "https:");
-  if (initGtag()) w.gtag!("consent", "update", { analytics_storage: choice });
+  if (initGtag()) {
+    w.gtag!("consent", "update", { analytics_storage: choice });
+    if (w.__reelateUid) {
+      w.gtag!("set", { user_id: choice === "granted" ? w.__reelateUid : null });
+    }
+  }
   if (choice === "denied") clearGaCookies(w.location.hostname);
 }
 

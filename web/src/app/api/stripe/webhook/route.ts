@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { db } from "@/db";
+import { sendPurchaseEvent } from "@/lib/analytics/measurement-protocol";
 import { handleStripeEvent } from "@/lib/credits/stripe-events";
 import { getStripe } from "@/lib/stripe";
 
@@ -18,7 +19,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
   try {
-    await handleStripeEvent(db, event);
+    // GA purchase yanıttan SONRA gönderilir: Stripe 200'ü analytics'i beklemeden alır.
+    await handleStripeEvent(db, event, (purchase) =>
+      after(() => sendPurchaseEvent(purchase)),
+    );
   } catch (e) {
     // 500 dönersek Stripe yeniden dener; fulfillment idempotent olduğu için güvenli.
     console.error("stripe webhook handling failed", e);

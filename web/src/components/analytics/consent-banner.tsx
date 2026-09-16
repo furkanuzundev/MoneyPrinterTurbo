@@ -33,7 +33,9 @@ export function ConsentBanner() {
       <p className="mb-1.5 text-[15px] font-bold">Cookies</p>
       <p className="mb-4 text-[13.5px] leading-relaxed text-muted">
         We&apos;d like to use Google Analytics cookies to understand how people use
-        Reelate and make it better. No ads, no selling data. See our{" "}
+        Reelate and make it better. If you reject, no analytics cookies are set;
+        Google still receives limited cookieless pings without identifiers. No
+        ads, no selling data. See our{" "}
         <Link href="/privacy" className="underline hover:text-bone">
           Privacy Policy
         </Link>

@@ -6,7 +6,12 @@ const PRODUCTION_MEASUREMENT_ID = "";
 
 const ENV_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
 
-/** Env'den gelen ID dev doğrulaması içindir: localhost'ta da yüklenir, debug_mode açılır. */
+/**
+ * Env'den gelen ID yalnızca yerel doğrulama içindir: localhost'ta da yüklenir,
+ * debug_mode açılır. Prod env'ine (/opt/reelate/.env.production) KOYMA:
+ * NEXT_PUBLIC_* istemciye build'de gömülür, sunucu runtime'da okur; ikisi
+ * ayrışabilir ve prod'da debug_mode açılır.
+ */
 export const GA_DEBUG = ENV_MEASUREMENT_ID !== "";
 
 export const GA_MEASUREMENT_ID = ENV_MEASUREMENT_ID || PRODUCTION_MEASUREMENT_ID;

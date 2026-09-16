@@ -10,6 +10,8 @@ export type PurchaseInput = {
   currency: string;
   packageKey: string;
   credits: number;
+  /** Ödemenin gerçekleştiği an; gecikmeli webhook teslimatında doğru oturuma düşsün. */
+  occurredAt?: Date;
 };
 
 type SendConfig = {
@@ -21,8 +23,10 @@ type SendConfig = {
 export type SendResult = "sent" | "skipped" | "failed";
 
 const TIMEOUT_MS = 3000;
+// GA en fazla 72 saat geriye tarihlenmiş olay kabul eder; sınırda pay bırak.
+const MAX_BACKDATE_MS = 71 * 60 * 60 * 1000;
 
-export function buildPurchasePayload(input: PurchaseInput) {
+export function buildPurchasePayload(input: PurchaseInput, now: Date = new Date()) {
   // GA'da value vergisiz gelirdir; vergi ayrı `tax` parametresinde.
   const value = (input.amountTotalCents - input.amountTaxCents) / 100;
   const params: Record<string, unknown> = {
@@ -42,8 +46,13 @@ export function buildPurchasePayload(input: PurchaseInput) {
       quantity: 1,
     },
   ];
+  const backdate =
+    input.occurredAt && now.getTime() - input.occurredAt.getTime() <= MAX_BACKDATE_MS
+      ? { timestamp_micros: input.occurredAt.getTime() * 1000 }
+      : {};
   return {
     client_id: input.clientId,
+    ...backdate,
     user_id: input.userId,
     // Reklam sinyalleri hiç kullanılmıyor (bkz. Consent Mode ayarı).
     consent: { ad_user_data: "DENIED", ad_personalization: "DENIED" },

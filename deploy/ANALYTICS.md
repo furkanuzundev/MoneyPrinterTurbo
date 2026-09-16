@@ -31,6 +31,12 @@ kararını değiştirebilir; reddedince `_ga` çerezleri silinir.
 client id'si yok). Bu yüzden GA'daki gelir < gerçek gelir; kesin rakam admin
 panelinde.
 
+**purchase `value` vergisizdir** (`amount_total - amount_tax`), vergi ayrı `tax`
+parametresinde. `STRIPE_TAX_ENABLED=true` yapılırsa Stripe'ta vergi davranışının
+*exclusive* olduğundan emin ol; *inclusive* ise GA'daki purchase değeri
+begin_checkout değerinden düşük görünür. Webhook, GA isteğini yanıt döndükten
+sonra (`after()`) gönderir; Stripe'ın 200'ü GA'yı beklemez.
+
 ---
 
 ## 1. GA4 property oluştur (analytics.google.com)
