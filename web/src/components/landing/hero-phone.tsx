@@ -29,7 +29,7 @@ export function HeroPhone() {
         <div className="heroGlow absolute -inset-10 bg-[radial-gradient(circle_at_50%_40%,rgba(244,198,58,0.18),transparent_65%)] blur-[10px]" />
         <div className="relative h-[520px] w-[290px] rounded-[34px] border border-white/10 bg-elevated p-3 shadow-[0_40px_90px_rgba(0,0,0,0.55)]">
           <div className="relative h-full w-full overflow-hidden rounded-3xl bg-panel">
-            {/* Gerçek Reelate çıktısı: 12 sn'lik döngü (366 KB) */}
+            {/* Gerçek Reelate çıktısı: 12 sn'lik sesli döngü (~520 KB) */}
             <video
               id={HERO_VIDEO_ID}
               className="absolute inset-0 h-full w-full object-cover"
