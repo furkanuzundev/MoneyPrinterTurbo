@@ -10,6 +10,7 @@ const ROUTE_LABELS: Array<[prefix: string, label: string]> = [
   ["/dashboard/jobs", "Library"],
   ["/dashboard/videos", "Library"],
   ["/dashboard/buy", "Buy credits"],
+  ["/dashboard/feedback", "Feedback"],
   ["/dashboard", "Home"],
 ];
 
