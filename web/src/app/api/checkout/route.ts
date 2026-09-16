@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
+import { sanitizeGaIds } from "@/lib/analytics/ga-ids";
 import { buildCheckoutParams } from "@/lib/credits/checkout";
 import { getPackage } from "@/lib/credits/packages";
 import { getStripe } from "@/lib/stripe";
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   const taxEnabled = process.env.STRIPE_TAX_ENABLED === "true";
   try {
     const checkout = await getStripe().checkout.sessions.create(
-      buildCheckoutParams(pkg, userId, appUrl, taxEnabled),
+      buildCheckoutParams(pkg, userId, appUrl, taxEnabled, sanitizeGaIds(body)),
     );
     return NextResponse.json({ url: checkout.url });
   } catch (e) {

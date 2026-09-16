@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CookieSettingsButton } from "@/components/analytics/cookie-settings-button";
 import { Logo } from "@/components/logo";
 
 export function LandingFooter() {
@@ -22,6 +23,7 @@ export function LandingFooter() {
         <Link href="/privacy" className="transition-colors hover:text-bone">
           Privacy
         </Link>
+        <CookieSettingsButton className="transition-colors hover:text-bone" />
       </div>
     </footer>
   );

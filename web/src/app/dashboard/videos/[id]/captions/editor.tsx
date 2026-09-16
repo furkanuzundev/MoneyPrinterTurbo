@@ -12,6 +12,7 @@ import {
   captionPreviewStyles,
 } from "@/lib/jobs/caption-ui";
 import { ColorAxis } from "@/components/subtitle/color-axis";
+import { track } from "@/lib/analytics/gtag";
 
 export function CaptionEditor({
   jobId,
@@ -49,6 +50,7 @@ export function CaptionEditor({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Re-render failed");
+      track("caption_rerender", {});
       router.push(`/dashboard/jobs/${jobId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");

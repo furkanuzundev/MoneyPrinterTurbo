@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CookieSettingsButton } from "@/components/analytics/cookie-settings-button";
 import { Card, buttonClasses } from "@/components/ui";
 import { USE_CASES } from "@/lib/seo/use-cases";
 
@@ -63,6 +64,7 @@ export default function UseCasesIndexPage() {
             Reelate
           </span>
           <span className="text-xs text-muted">&copy; Reelate</span>
+          <CookieSettingsButton className="text-xs text-muted transition-colors hover:text-bone" />
         </div>
       </footer>
     </main>

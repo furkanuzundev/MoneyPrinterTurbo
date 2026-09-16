@@ -2,6 +2,11 @@ import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import type { Db } from "@/db";
 import { users } from "@/db/schema";
+import { sanitizeGaIds } from "@/lib/analytics/ga-ids";
+import {
+  type PurchaseInput,
+  sendPurchaseEvent,
+} from "@/lib/analytics/measurement-protocol";
 import { fulfillPurchase } from "@/lib/credits/purchases";
 
 /**
@@ -16,12 +21,22 @@ import { fulfillPurchase } from "@/lib/credits/purchases";
  * Not: credits, checkout anındaki metadata'dan gelir (bilinçli: müşteri
  * gördüğü paketi alır; paket konfigürasyonu sonradan değişse bile).
  */
-export async function handleStripeEvent(db: Db, event: Stripe.Event) {
+export async function handleStripeEvent(
+  db: Db,
+  event: Stripe.Event,
+  reportPurchase: (input: PurchaseInput) => unknown = sendPurchaseEvent,
+) {
   if (event.type !== "checkout.session.completed") return;
   const session = event.data.object as Stripe.Checkout.Session;
   if (session.payment_status !== "paid") return;
 
-  const { userId, packageKey, credits: creditsRaw } = session.metadata ?? {};
+  const {
+    userId,
+    packageKey,
+    credits: creditsRaw,
+    ga_client_id: gaClientId,
+    ga_session_id: gaSessionId,
+  } = session.metadata ?? {};
   const credits = Number(creditsRaw);
   if (!userId || !packageKey || !Number.isInteger(credits) || credits <= 0) {
     console.error(
@@ -54,4 +69,25 @@ export async function handleStripeEvent(db: Db, event: Stripe.Event) {
       ? `stripe webhook: credited ${credits} credits to ${userId} (session ${session.id})`
       : `stripe webhook: duplicate delivery for session ${session.id}, no-op`,
   );
+
+  // Yalnızca ilk teslimatta: tekrar gelen webhook GA'da çift gelir yazmasın.
+  // Kredi zaten yüklendi; enjekte edilen raporlayıcı ne yaparsa yapsın
+  // webhook 500'e dönmemeli (Stripe retry'ı analytics yüzünden tetiklenmesin).
+  if (credited) {
+    try {
+      await reportPurchase({
+        ...sanitizeGaIds({ gaClientId, gaSessionId }),
+        userId,
+        transactionId: session.id,
+        amountTotalCents: session.amount_total ?? 0,
+        amountTaxCents: session.total_details?.amount_tax ?? 0,
+        currency: session.currency ?? "usd",
+        packageKey,
+        credits,
+        occurredAt: new Date(event.created * 1000),
+      });
+    } catch (e) {
+      console.error(`ga purchase report failed for ${session.id}`, e);
+    }
+  }
 }

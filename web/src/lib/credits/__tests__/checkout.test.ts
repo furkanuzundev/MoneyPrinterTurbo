@@ -36,6 +36,20 @@ describe("buildCheckoutParams", () => {
       credits: "50",
     });
   });
+  it("adds GA ids to metadata only when present", () => {
+    const withGa = buildCheckoutParams(PKG, "user-1", "https://reelate.org", false, {
+      clientId: "123.456",
+      sessionId: "1726480000",
+    });
+    expect(withGa.metadata).toMatchObject({
+      ga_client_id: "123.456",
+      ga_session_id: "1726480000",
+    });
+    const clientOnly = buildCheckoutParams(PKG, "user-1", "https://reelate.org", false, {
+      clientId: "123.456",
+    });
+    expect(clientOnly.metadata).not.toHaveProperty("ga_session_id");
+  });
   it("sets redirect urls", () => {
     expect(params.success_url).toBe(
       "https://reelate.org/dashboard/buy/success?session_id={CHECKOUT_SESSION_ID}",
