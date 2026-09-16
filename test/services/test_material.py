@@ -149,7 +149,7 @@ class TestMaterialTlsVerification(unittest.TestCase):
         }
         downloaded_urls = []
 
-        def fake_search(search_term, minimum_duration, video_aspect):
+        def fake_search(search_term, minimum_duration, video_aspect, page=1):
             return search_results[search_term]
 
         def fake_save_video(video_url, save_dir=""):
@@ -429,8 +429,9 @@ class TestCoverrProvider(unittest.TestCase):
                 max_clip_duration=5,
             )
 
-        # 1. dispatch
-        self.assertEqual(search.call_count, 1)
+        # 1. dispatch (ilk sayfadan başlar; tekrar eden sayfada durur)
+        self.assertEqual(search.call_args_list[0].kwargs["page"], 1)
+        self.assertEqual(search.call_count, 2)
 
         # 2. save_video 收到的就是 mp4_download URL,原样传入
         save_url = save.call_args.kwargs.get("video_url") or save.call_args.args[0]
@@ -826,9 +827,9 @@ class ScriptOrderMultiSourceTest(unittest.TestCase):
             "material_directory": "",
         }
         # term1 -> pexels A1 + pixabay B1 ; term2 -> pexels A2
-        def pexels_search(search_term, minimum_duration, video_aspect):
+        def pexels_search(search_term, minimum_duration, video_aspect, page=1):
             return {"t1": [self._item("A1")], "t2": [self._item("A2")]}[search_term]
-        def pixabay_search(search_term, minimum_duration, video_aspect):
+        def pixabay_search(search_term, minimum_duration, video_aspect, page=1):
             return {"t1": [self._item("B1")], "t2": []}[search_term]
 
         saved = []

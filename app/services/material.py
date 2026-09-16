@@ -60,31 +60,68 @@ def get_api_key(cfg_key: str):
         return api_keys[_api_key_counter % len(api_keys)]
 
 
-def _matches_orientation(width: int, height: int, video_aspect: VideoAspect) -> bool:
-    # 9:16 istenirken yatay klip (veya tersi) timeline'a girerse letterbox
-    # oluşuyor; bu yüzden yönü tutmayan klipler kaynak seviyesinde elenir.
-    if video_aspect == VideoAspect.portrait:
-        return height > width
-    if video_aspect == VideoAspect.landscape:
-        return width > height
-    return True
+# Aynı orandaki dosyalar (720x1280, 1080x1920, 2160x3840) kabul edilir;
+# oranı %3'ten fazla sapan klip timeline'da letterbox yaratır, elenir.
+_RATIO_TOLERANCE = 0.03
+_MIN_SHORT_SIDE = 720
+
+
+def _pick_rendition(renditions, video_aspect: VideoAspect):
+    """(width, height, url) listesinden hedef formata en uygun url'i seçer.
+
+    Portrait/landscape için yalnızca hedef oranı tutan dosyalar; kare için
+    her oran kabul edilir (render ortadan kırpar). Tercih sırası: hedef
+    kısa kenara eşit/büyük olanların en küçüğü, yoksa en büyüğü.
+    """
+    aspect = VideoAspect(video_aspect)
+    target_w, target_h = aspect.to_resolution()
+    target_ratio = target_w / target_h
+    target_short = min(target_w, target_h)
+
+    candidates = []
+    for w, h, url in renditions:
+        w, h = int(w or 0), int(h or 0)
+        if w <= 0 or h <= 0 or not url:
+            continue
+        if min(w, h) < _MIN_SHORT_SIDE:
+            continue
+        if aspect != VideoAspect.square:
+            if abs(w / h - target_ratio) / target_ratio > _RATIO_TOLERANCE:
+                continue
+        candidates.append((w, h, url))
+
+    if not candidates:
+        return None
+    large_enough = [c for c in candidates if min(c[0], c[1]) >= target_short]
+    if large_enough:
+        return min(large_enough, key=lambda c: c[0] * c[1])[2]
+    return max(candidates, key=lambda c: c[0] * c[1])[2]
+
+
+def _min_clip_duration(max_clip_duration: int) -> int:
+    # Kısa klipler de havuza girer; render klibi olduğu gibi kullanır.
+    configured = int(config.app.get("material_min_clip_duration", 3))
+    return max(1, min(configured, int(max_clip_duration)))
 
 
 def search_videos_pexels(
     search_term: str,
     minimum_duration: int,
     video_aspect: VideoAspect = VideoAspect.portrait,
+    page: int = 1,
 ) -> List[MaterialInfo]:
     aspect = VideoAspect(video_aspect)
-    video_orientation = aspect.name
-    video_width, video_height = aspect.to_resolution()
     api_key = get_api_key("pexels_api_keys")
     headers = {
         "Authorization": api_key,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
     }
     # Build URL
-    params = {"query": search_term, "per_page": 20, "orientation": video_orientation}
+    params = {"query": search_term, "per_page": 80, "page": page}
+    # Pexels'te kare klip yok denecek kadar az; kare için filtresiz arayıp
+    # render'da kırpıyoruz.
+    if aspect != VideoAspect.square:
+        params["orientation"] = aspect.name
     query_url = f"https://api.pexels.com/videos/search?{urlencode(params)}"
     logger.info(f"searching videos: {query_url}, with proxies: {config.proxy}")
 
@@ -108,18 +145,16 @@ def search_videos_pexels(
             # check if video has desired minimum duration
             if duration < minimum_duration:
                 continue
-            video_files = v["video_files"]
-            # loop through each url to determine the best quality
-            for video in video_files:
-                w = int(video["width"])
-                h = int(video["height"])
-                if w == video_width and h == video_height:
-                    item = MaterialInfo()
-                    item.provider = "pexels"
-                    item.url = video["link"]
-                    item.duration = duration
-                    video_items.append(item)
-                    break
+            url = _pick_rendition(
+                [(f.get("width"), f.get("height"), f.get("link")) for f in v["video_files"]],
+                aspect,
+            )
+            if url:
+                item = MaterialInfo()
+                item.provider = "pexels"
+                item.url = url
+                item.duration = duration
+                video_items.append(item)
         return video_items
     except Exception as e:
         logger.error(f"search videos failed: {str(e)}")
@@ -131,17 +166,17 @@ def search_videos_pixabay(
     search_term: str,
     minimum_duration: int,
     video_aspect: VideoAspect = VideoAspect.portrait,
+    page: int = 1,
 ) -> List[MaterialInfo]:
     aspect = VideoAspect(video_aspect)
-
-    video_width, video_height = aspect.to_resolution()
 
     api_key = get_api_key("pixabay_api_keys")
     # Build URL
     params = {
         "q": search_term,
         "video_type": "all",  # Accepted values: "all", "film", "animation"
-        "per_page": 50,
+        "per_page": 200,
+        "page": page,
         "key": api_key,
     }
     query_url = f"https://pixabay.com/api/videos/?{urlencode(params)}"
@@ -163,21 +198,19 @@ def search_videos_pixabay(
             # check if video has desired minimum duration
             if duration < minimum_duration:
                 continue
-            video_files = v["videos"]
-            # loop through each url to determine the best quality
-            for video_type in video_files:
-                video = video_files[video_type]
-                w = int(video["width"])
-                h = int(video.get("height") or 0)
-                if not _matches_orientation(w, h, aspect):
-                    continue
-                if w >= video_width:
-                    item = MaterialInfo()
-                    item.provider = "pixabay"
-                    item.url = video["url"]
-                    item.duration = duration
-                    video_items.append(item)
-                    break
+            url = _pick_rendition(
+                [
+                    (f.get("width"), f.get("height"), f.get("url"))
+                    for f in (v.get("videos") or {}).values()
+                ],
+                aspect,
+            )
+            if url:
+                item = MaterialInfo()
+                item.provider = "pixabay"
+                item.url = url
+                item.duration = duration
+                video_items.append(item)
         return video_items
     except Exception as e:
         logger.error(f"search videos failed: {str(e)}")
@@ -189,6 +222,7 @@ def search_videos_coverr(
     search_term: str,
     minimum_duration: int,
     video_aspect: VideoAspect = VideoAspect.portrait,
+    page: int = 1,
 ) -> List[MaterialInfo]:
     """
     Coverr (https://coverr.co) - free HD/4K stock videos,
@@ -214,7 +248,8 @@ def search_videos_coverr(
     headers = {"Authorization": f"Bearer {api_key}"}
     params = {
         "query": search_term,
-        "page_size": 20,
+        "page_size": 100,
+        "page": page,
         "urls": "true",
         "sort": "popular",
     }
@@ -250,15 +285,13 @@ def search_videos_coverr(
             if not video_id or not mp4_download_url:
                 continue
 
+            aspect = VideoAspect(video_aspect)
+            max_w, max_h = v.get("max_width"), v.get("max_height")
             is_vertical = v.get("is_vertical")
-            if not isinstance(is_vertical, bool):
-                max_w, max_h = v.get("max_width"), v.get("max_height")
-                if max_w and max_h:
-                    is_vertical = max_h > max_w
-                else:
-                    is_vertical = None
-            if is_vertical is not None:
-                aspect = VideoAspect(video_aspect)
+            if max_w and max_h:
+                if not _pick_rendition([(max_w, max_h, mp4_download_url)], aspect):
+                    continue
+            elif isinstance(is_vertical, bool):
                 if aspect == VideoAspect.portrait and not is_vertical:
                     continue
                 if aspect == VideoAspect.landscape and is_vertical:
@@ -504,6 +537,7 @@ def _search_all_sources(
     search_term: str,
     minimum_duration: int,
     video_aspect: VideoAspect,
+    page: int = 1,
 ) -> List:
     """Verilen kaynakları tek terim için sorgular, round-robin harmanlar.
 
@@ -519,6 +553,7 @@ def _search_all_sources(
                 search_term=search_term,
                 minimum_duration=minimum_duration,
                 video_aspect=video_aspect,
+                page=page,
             )
         except Exception as e:
             logger.warning(
@@ -528,6 +563,63 @@ def _search_all_sources(
         if items:
             results_by_source[src] = items
     return _merge_sources_round_robin(results_by_source)
+
+
+# Aday havuzu gereken sürenin bu katına ulaşınca sonraki sayfalar istenmez;
+# böylece rastgele karıştırmada çeşitlilik olur ama API kotası boşa harcanmaz.
+_CANDIDATE_POOL_FACTOR = 3
+
+
+def _collect_candidate_groups(
+    sources: List[str],
+    search_terms: List[str],
+    video_aspect: VideoAspect,
+    audio_duration: float,
+    max_clip_duration: int,
+) -> List[tuple]:
+    """Her terim için adayları toplar; havuz yetmezse sonraki sayfaları çeker.
+
+    Dönüş: arama sırasını koruyan [(terim, [MaterialInfo, ...]), ...].
+    Aynı url yalnızca ilk bulunduğu terime yazılır. Yeni url getirmeyen
+    sayfa dönen terim tükenmiş sayılır; material_search_max_pages sayfa sayısını sınırlar.
+    """
+    max_pages = max(1, int(config.app.get("material_search_max_pages", 3)))
+    minimum_duration = _min_clip_duration(max_clip_duration)
+    groups = [(term, []) for term in search_terms]
+    active = list(range(len(groups)))
+    seen_urls = set()
+    usable_duration = 0.0
+
+    for page in range(1, max_pages + 1):
+        still_active = []
+        for index in active:
+            term, term_items = groups[index]
+            video_items = _search_all_sources(
+                sources=sources,
+                search_term=term,
+                minimum_duration=minimum_duration,
+                video_aspect=video_aspect,
+                page=page,
+            )
+            logger.info(f"found {len(video_items)} videos for '{term}' (page {page})")
+            new_items = [item for item in video_items if item.url not in seen_urls]
+            # Boş ya da tamamen tekrar eden sayfa: terim tükendi.
+            if not new_items:
+                continue
+            still_active.append(index)
+            for item in new_items:
+                seen_urls.add(item.url)
+                term_items.append(item)
+                usable_duration += min(max_clip_duration, item.duration)
+        active = still_active
+        if not active or usable_duration >= audio_duration * _CANDIDATE_POOL_FACTOR:
+            break
+
+    logger.info(
+        f"found total candidates: {sum(len(items) for _, items in groups)}, "
+        f"required duration: {audio_duration} seconds, usable duration: {usable_duration} seconds"
+    )
+    return [(term, items) for term, items in groups if items]
 
 
 def download_videos(
@@ -560,27 +652,17 @@ def download_videos(
             material_directory=material_directory,
         )
 
-    valid_video_items = []
-    valid_video_urls = []
-    found_duration = 0.0
-    for search_term in search_terms:
-        video_items = _search_all_sources(
+    valid_video_items = [
+        item
+        for _, term_items in _collect_candidate_groups(
             sources=sources,
-            search_term=search_term,
-            minimum_duration=max_clip_duration,
+            search_terms=search_terms,
             video_aspect=video_aspect,
+            audio_duration=audio_duration,
+            max_clip_duration=max_clip_duration,
         )
-        logger.info(f"found {len(video_items)} videos for '{search_term}'")
-
-        for item in video_items:
-            if item.url not in valid_video_urls:
-                valid_video_items.append(item)
-                valid_video_urls.append(item.url)
-                found_duration += item.duration
-
-    logger.info(
-        f"found total videos: {len(valid_video_items)}, required duration: {audio_duration} seconds, found duration: {found_duration} seconds"
-    )
+        for item in term_items
+    ]
     concat_mode_value = getattr(video_concat_mode, "value", video_concat_mode)
     if concat_mode_value == VideoConcatMode.random.value:
         random.shuffle(valid_video_items)
@@ -618,36 +700,12 @@ def _download_videos_by_script_order(
     """
     logger.info("downloading videos with script-order material matching")
 
-    def _search(term):
-        return _search_all_sources(
-            sources=sources,
-            search_term=term,
-            minimum_duration=max_clip_duration,
-            video_aspect=video_aspect,
-        )
-
-    candidate_groups = []
-    valid_video_urls = set()
-    found_duration = 0.0
-
-    for search_term in search_terms:
-        video_items = _search(search_term)
-        logger.info(f"found {len(video_items)} videos for '{search_term}'")
-
-        term_items = []
-        for item in video_items:
-            if item.url in valid_video_urls:
-                continue
-            term_items.append(item)
-            valid_video_urls.add(item.url)
-            found_duration += item.duration
-
-        if term_items:
-            candidate_groups.append((search_term, term_items))
-
-    logger.info(
-        f"found total ordered video candidates: {sum(len(items) for _, items in candidate_groups)}, "
-        f"required duration: {audio_duration} seconds, found duration: {found_duration} seconds"
+    candidate_groups = _collect_candidate_groups(
+        sources=sources,
+        search_terms=search_terms,
+        video_aspect=video_aspect,
+        audio_duration=audio_duration,
+        max_clip_duration=max_clip_duration,
     )
 
     video_paths = []
