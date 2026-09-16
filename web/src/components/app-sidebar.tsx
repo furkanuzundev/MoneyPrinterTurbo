@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Home, Clapperboard, LibraryBig, Coins } from "lucide-react";
+import {
+  Home,
+  Clapperboard,
+  LibraryBig,
+  Coins,
+  MessageSquare,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/create", label: "Create video", icon: Clapperboard },
   { href: "/dashboard/library", label: "Library", icon: LibraryBig },
   { href: "/dashboard/buy", label: "Buy credits", icon: Coins },
+  { href: "/dashboard/feedback", label: "Give us a feedback!", icon: MessageSquare },
 ] as const;
 
 function isActive(href: string, pathname: string) {
@@ -32,6 +39,12 @@ function isActive(href: string, pathname: string) {
     );
   }
   return pathname.startsWith(href);
+}
+
+// Geri bildirim hangi sayfadan açıldıysa mailde bağlam olarak görünsün.
+function linkFor(href: string, pathname: string) {
+  if (href !== "/dashboard/feedback" || pathname.startsWith(href)) return href;
+  return `${href}?from=${encodeURIComponent(pathname)}`;
 }
 
 export function AppSidebar({
@@ -76,7 +89,7 @@ export function AppSidebar({
                   tooltip={item.label}
                   className="rounded-[11px] px-3 py-[10px] font-semibold data-[active=true]:bg-caption data-[active=true]:text-caption-ink"
                 >
-                  <Link href={item.href}>
+                  <Link href={linkFor(item.href, pathname)}>
                     <item.icon />
                     <span>{item.label}</span>
                   </Link>
