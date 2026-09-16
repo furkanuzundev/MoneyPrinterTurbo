@@ -45,6 +45,22 @@ describe("sendFeedbackMail", () => {
     });
   });
 
+  // Hetzner giden 465'i (ve 25'i) engelliyor: 465'e bağlanan istek ~2 dk askıda kalıyordu.
+  it("uses STARTTLS on port 587, which the prod host allows", async () => {
+    await sendFeedbackMail(mail);
+    expect(createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 587, secure: false, requireTLS: true }),
+    );
+  });
+
+  it("fails fast instead of hanging when SMTP is unreachable", async () => {
+    await sendFeedbackMail(mail);
+    const opts = (createTransport.mock.calls[0] as unknown[])[0] as Record<string, number>;
+    expect(opts.connectionTimeout).toBeLessThanOrEqual(15_000);
+    expect(opts.greetingTimeout).toBeLessThanOrEqual(15_000);
+    expect(opts.socketTimeout).toBeLessThanOrEqual(20_000);
+  });
+
   it("propagates SMTP failures", async () => {
     sendMail.mockRejectedValue(new Error("535 auth failed"));
     await expect(sendFeedbackMail(mail)).rejects.toThrow("535");
