@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CookieSettingsButton } from "@/components/analytics/cookie-settings-button";
 import { Card, CaptionChip, buttonClasses } from "@/components/ui";
 import { USE_CASES, getUseCase, getRelatedUseCases } from "@/lib/seo/use-cases";
 import "../../landing.css";
@@ -174,6 +175,7 @@ export default async function UseCasePage({ params }: PageProps) {
           >
             Use cases
           </Link>
+          <CookieSettingsButton className="text-xs text-muted transition-colors hover:text-bone" />
         </div>
       </footer>
     </main>
