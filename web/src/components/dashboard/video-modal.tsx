@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { VideoCardData } from "./video-grid";
 import { CaptionSafeVideo } from "@/components/video/caption-safe-video";
 import { VideoRating } from "./video-rating";
+import { track } from "@/lib/analytics/gtag";
 
 const POST_TARGETS = [
   { label: "TikTok", href: "https://www.tiktok.com/upload" },
@@ -101,7 +102,10 @@ export function VideoModal({
           <div className="mb-3.5 flex gap-2.5">
             <a
               href={`/api/videos/${video.id}?download=1`}
-              onClick={() => setNudgeRating(true)}
+              onClick={() => {
+                setNudgeRating(true);
+                track("video_download", { location: "library" });
+              }}
               className="flex-1 rounded-[11px] bg-caption p-3 text-center text-sm font-bold text-caption-ink transition-opacity hover:opacity-90"
             >
               ↓ Download MP4

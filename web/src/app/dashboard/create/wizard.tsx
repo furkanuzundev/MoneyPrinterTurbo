@@ -16,6 +16,7 @@ import { JobLive } from "@/components/dashboard/job-live";
 import { StepIndicator } from "./step-indicator";
 import { BriefStep, type BriefValues } from "./brief-step";
 import { ScriptStep } from "./script-step";
+import { track } from "@/lib/analytics/gtag";
 
 // window.localStorage getter'ı bile bazı tarayıcılarda (engellenmiş site
 // verisi) fırlatabiliyor.
@@ -115,11 +116,17 @@ export function Wizard({ balance }: { balance: number }) {
       const data = await res.json();
       if (!res.ok) {
         if (data.code === "INSUFFICIENT_CREDITS") {
+          track("credits_insufficient", {});
           router.push("/dashboard/buy");
           return;
         }
         throw new Error(data.error ?? "Could not start the job");
       }
+      track("video_generate", {
+        aspect: brief.aspect,
+        target_seconds: brief.targetSeconds,
+        voice: brief.voice,
+      });
       setJobId(data.jobId);
       setStep(3);
       router.refresh(); // topbar/sidebar bakiyesi düşen krediyi göstersin

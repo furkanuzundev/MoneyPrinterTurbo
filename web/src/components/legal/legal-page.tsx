@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CookieSettingsButton } from "@/components/analytics/cookie-settings-button";
 
 export function LegalPage({
   title,
@@ -27,6 +28,9 @@ export function LegalPage({
         </p>
         <div className="space-y-8 text-[15px] leading-relaxed text-muted [&_h2]:mb-2 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-bone">
           {children}
+        </div>
+        <div className="mt-12 border-t border-white/5 pt-6 text-sm text-muted/80">
+          <CookieSettingsButton className="underline transition-colors hover:text-bone" />
         </div>
       </div>
     </main>

@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { getGaIds, track } from "@/lib/analytics/gtag";
 
 export function BuyButton({
   packageKey,
   label,
   featured,
+  amountCents,
+  credits,
 }: {
   packageKey: string;
   label: string;
   featured: boolean;
+  amountCents: number;
+  credits: number;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +32,27 @@ export function BuyButton({
         onClick={async () => {
           setLoading(true);
           setError(null);
+          const value = amountCents / 100;
+          track("begin_checkout", {
+            currency: "USD",
+            value,
+            items: [
+              {
+                item_id: packageKey,
+                item_name: `${credits} credits`,
+                item_category: "credits",
+                price: value,
+                quantity: 1,
+              },
+            ],
+          });
           try {
+            // Webhook'taki server-side purchase bu tarayıcı oturumuna bağlansın.
+            const gaIds = await getGaIds();
             const res = await fetch("/api/checkout", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ packageKey }),
+              body: JSON.stringify({ packageKey, ...gaIds }),
             });
             const data = await res.json();
             if (res.ok && data.url) {

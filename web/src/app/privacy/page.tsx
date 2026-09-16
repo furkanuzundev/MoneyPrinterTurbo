@@ -39,8 +39,30 @@ export default function PrivacyPage() {
       <section>
         <h2>4. Cookies</h2>
         <p>
-          We use a session cookie to keep you signed in. No third-party
-          advertising or tracking cookies.
+          We use a session cookie to keep you signed in, and a cookie that
+          remembers your cookie choice. No advertising cookies.
+        </p>
+        <p className="mt-3">
+          <strong className="text-bone">Analytics.</strong> If you click
+          &ldquo;Accept&rdquo; on our cookie banner, we use Google Analytics
+          to understand how Reelate is used: pages visited, the device and
+          browser you use, your approximate location (country/city, derived
+          from your IP address, which Google does not store), how you found
+          us, and key actions such as creating, downloading or rating a video
+          and buying credits. This sets Google Analytics cookies
+          (<code>_ga</code>, <code>_ga_*</code>) for up to two years. When you
+          are signed in we attach an internal account ID, never your name or
+          email. Google processes this data on our behalf; we don&apos;t use it
+          for advertising and don&apos;t enable Google&apos;s ad
+          personalization.
+        </p>
+        <p className="mt-3">
+          If you click &ldquo;Reject&rdquo; (or ignore the banner), no
+          analytics cookies are set; Google may receive anonymous,
+          cookieless signals that cannot identify you. You can change your
+          choice at any time via &ldquo;Cookie settings&rdquo; at the bottom
+          of this page or the site footer; rejecting removes existing
+          analytics cookies.
         </p>
       </section>
       <section>

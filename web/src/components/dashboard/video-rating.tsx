@@ -9,6 +9,7 @@ import {
   isPositive,
 } from "@/lib/feedback/rating";
 import { followUpFor, STAR_LABELS, toggleTag } from "@/lib/feedback/rating-ui";
+import { track } from "@/lib/analytics/gtag";
 
 type Phase = "loading" | "idle" | "editing" | "sent";
 
@@ -77,7 +78,9 @@ export function VideoRating({
     setRating(value);
     setTags(nextTags);
     setPhase("editing");
-    await save({ rating: value, tags: nextTags, comment });
+    if (await save({ rating: value, tags: nextTags, comment })) {
+      track("video_rate", { rating: value, location: source });
+    }
   }
 
   async function send() {

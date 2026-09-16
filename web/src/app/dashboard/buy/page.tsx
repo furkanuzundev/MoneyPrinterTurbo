@@ -112,6 +112,8 @@ export default async function BuyPage() {
                 packageKey={pkg.key}
                 label={pkg.label}
                 featured={pkg.featured}
+                amountCents={pkg.amountCents}
+                credits={pkg.credits}
               />
             </div>
           );

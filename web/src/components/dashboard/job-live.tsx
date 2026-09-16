@@ -6,6 +6,7 @@ import { RENDER_STAGES, stageIndexForProgress } from "@/lib/jobs/stages";
 import { PostTo } from "./post-to";
 import { VideoRating } from "./video-rating";
 import { CaptionSafeVideo } from "@/components/video/caption-safe-video";
+import { track } from "@/lib/analytics/gtag";
 
 type JobEvent = {
   status: string;
@@ -193,7 +194,10 @@ function DoneView({
         <div className="mb-3.5 flex flex-wrap gap-3">
           <a
             href={`/api/videos/${jobId}?download=1`}
-            onClick={() => setNudgeRating(true)}
+            onClick={() => {
+              setNudgeRating(true);
+              track("video_download", { location: "job_done" });
+            }}
             className="inline-flex items-center gap-2 rounded-xl bg-caption px-[22px] py-[13px] text-[15px] font-bold text-caption-ink transition-opacity hover:opacity-90"
           >
             ↓ Download MP4

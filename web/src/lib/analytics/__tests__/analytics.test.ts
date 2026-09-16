@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isTrackableHost } from "../config";
 import { parseConsent, serializeConsent, gaCookieDomains } from "../consent";
 import { sanitizeGaIds } from "../ga-ids";
+import { isRecentSignup } from "../signup";
 
 describe("isTrackableHost", () => {
   it("tracks the public site", () => {
@@ -67,5 +68,16 @@ describe("sanitizeGaIds", () => {
     expect(sanitizeGaIds({})).toEqual({});
     expect(sanitizeGaIds(null)).toEqual({});
     expect(sanitizeGaIds({ gaSessionId: "1726480000" })).toEqual({});
+  });
+});
+
+describe("isRecentSignup", () => {
+  const now = new Date("2026-09-16T12:00:00Z");
+  it("is true within ten minutes of account creation", () => {
+    expect(isRecentSignup(new Date("2026-09-16T11:55:00Z"), now)).toBe(true);
+  });
+  it("is false for older accounts or a missing date", () => {
+    expect(isRecentSignup(new Date("2026-09-16T11:49:59Z"), now)).toBe(false);
+    expect(isRecentSignup(undefined, now)).toBe(false);
   });
 });
