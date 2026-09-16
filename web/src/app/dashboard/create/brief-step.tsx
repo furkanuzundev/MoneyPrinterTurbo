@@ -12,6 +12,7 @@ import {
 } from "@/lib/jobs/options";
 import type { CaptionStyle } from "@/lib/jobs/scenes";
 import {
+  aspectPreviewBox,
   captionPreviewStyles,
   SIZE_LABEL,
   POSITION_LABEL,
@@ -26,6 +27,13 @@ const ASPECT_META: Record<string, { sub: string; w: number; h: number }> = {
   "1:1": { sub: "Feed post", w: 30, h: 30 },
   "16:9": { sub: "YouTube", w: 36, h: 20 },
 };
+
+// /api/subject aynı alt sınırı uyguluyor; buton da ondan önce pasif kalsın.
+const MIN_SUBJECT_CHARS = 3;
+
+// Thumbnail altyazı stilini (boyut/konum/renk) göstermek için var; içeriği
+// sabit, videonun gerçek altyazısıyla ilişkisi yok.
+const PREVIEW_CAPTION = "Reelate";
 
 // "Jenny (US, Female)" → { name: "Jenny", meta: "EN · US" }
 function voiceDisplay(v: (typeof VOICES)[number]) {
@@ -50,6 +58,8 @@ export function BriefStep({
   busy,
   captionStyle,
   onCaptionChange,
+  saveSettings,
+  onSaveSettingsChange,
 }: {
   values: BriefValues;
   onChange: (patch: Partial<BriefValues>) => void;
@@ -57,6 +67,8 @@ export function BriefStep({
   busy: boolean;
   captionStyle: CaptionStyle;
   onCaptionChange: (patch: Partial<CaptionStyle>) => void;
+  saveSettings: boolean;
+  onSaveSettingsChange: (on: boolean) => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const requestSeqRef = useRef(0);
@@ -99,9 +111,44 @@ export function BriefStep({
     }
   }
 
+  // "Refine with AI": ham metni /api/subject üzerinden tek satırlık keskin bir
+  // konuya çevirir. Önceki metin undo için tutulur, kullanıcı textarea'ya elle
+  // dokununca düşer.
+  const [refining, setRefining] = useState(false);
+  const [refineError, setRefineError] = useState<string | null>(null);
+  const [previousSubject, setPreviousSubject] = useState<string | null>(null);
+
+  async function refineSubject() {
+    const raw = values.subject.trim();
+    if (raw.length < MIN_SUBJECT_CHARS || refining) return;
+    setRefining(true);
+    setRefineError(null);
+    try {
+      const res = await fetch("/api/subject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: raw,
+          language: values.language,
+          targetSeconds: values.targetSeconds,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not refine the topic");
+      setPreviousSubject(raw);
+      onChange({ subject: String(data.subject) });
+    } catch (e) {
+      setRefineError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setRefining(false);
+    }
+  }
+
   const voices = VOICES.filter((v) => v.language === values.language);
-  const canGenerate = values.subject.trim().length > 0 && !busy;
+  const canRefine = values.subject.trim().length >= MIN_SUBJECT_CHARS && !refining;
+  const canGenerate = values.subject.trim().length > 0 && !busy && !refining;
   const lengthLabel = formatDuration(values.targetSeconds);
+  const previewBox = aspectPreviewBox(values.aspect);
   const languageLabel =
     LANGUAGES.find((l) => l.code === values.language)?.label ?? values.language;
   const voiceLabel = voices.find((v) => v.id === values.voice)
@@ -111,17 +158,75 @@ export function BriefStep({
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
       <div className="rounded-[20px] border border-white/5 bg-[#141310] p-6 sm:p-7">
-        <label className="mb-2 block text-sm font-semibold text-bone">
-          What&apos;s the video about?
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={saveSettings}
+            onChange={(e) => onSaveSettingsChange(e.target.checked)}
+            className="peer sr-only"
+          />
+          <span
+            aria-hidden
+            className={`mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-md border text-[12px] font-bold transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-caption/60 ${
+              saveSettings
+                ? "border-caption bg-caption text-caption-ink"
+                : "border-white/20 bg-[#0E0C08] text-transparent"
+            }`}
+          >
+            ✓
+          </span>
+          <span>
+            <span className="block text-sm font-semibold text-bone">
+              Save settings
+            </span>
+            <span className="mt-0.5 block font-mono-data text-[11.5px] text-muted/70">
+              Keep these settings for your next video.
+            </span>
+          </span>
         </label>
+
+        <div className="my-6 h-px bg-white/5" />
+
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="text-sm font-semibold text-bone">
+            What&apos;s the video about?
+          </label>
+          <button
+            type="button"
+            onClick={() => void refineSubject()}
+            disabled={!canRefine}
+            className="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-caption hover:text-caption disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/15 disabled:hover:text-muted"
+          >
+            {refining ? "Polishing…" : "Refine with AI"}
+          </button>
+        </div>
         <textarea
           value={values.subject}
-          onChange={(e) => onChange({ subject: e.target.value })}
+          onChange={(e) => {
+            setPreviousSubject(null);
+            setRefineError(null);
+            onChange({ subject: e.target.value });
+          }}
           placeholder="e.g. three morning habits that changed my life"
           className="min-h-[88px] w-full resize-y rounded-xl border border-white/10 bg-[#0E0C08] px-[15px] py-3.5 text-[15px] leading-normal text-bone outline-none placeholder:text-muted/50 focus:border-caption/50"
         />
-        <div className="mt-2 font-mono-data text-[11.5px] text-muted/70">
-          Be specific &mdash; a niche topic makes a sharper script.
+        <div className="mt-2 flex items-center justify-between gap-3 font-mono-data text-[11.5px]">
+          <span className={refineError ? "text-red-400" : "text-muted/70"}>
+            {refineError ??
+              "Be specific \u2014 a niche topic makes a sharper script."}
+          </span>
+          {previousSubject !== null && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange({ subject: previousSubject });
+                setPreviousSubject(null);
+              }}
+              className="shrink-0 text-muted/70 underline underline-offset-2 transition-colors hover:text-bone"
+            >
+              Undo
+            </button>
+          )}
         </div>
 
         <div className="my-6 h-px bg-white/5" />
@@ -295,35 +400,55 @@ export function BriefStep({
         <div className="mb-4 font-mono-data text-[11px] uppercase tracking-[0.08em] text-muted/70">
           Your brief
         </div>
-        <div
-          className="relative mx-auto mb-[18px] aspect-[9/16] w-28 rounded-xl border border-white/5"
-          style={{
-            background:
-              "repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 12px, rgba(255,255,255,0.06) 12px 24px)",
-          }}
-        >
-          {(() => {
-            const cp = captionPreviewStyles(captionStyle);
-            // cp.pos'un mutlak px'i editör önizlemesi ölçeğinde; bu küçük
-            // thumbnail'da (aspect-[9/16] w-28) top/center/bottom'ı ayırt
-            // edilir kılmak için thumbnail-ölçekli konum kullanılır.
-            const thumbPos =
-              captionStyle.position === "top"
-                ? { top: 8 }
-                : captionStyle.position === "center"
-                  ? { top: "50%" as const, transform: "translateY(-50%)" }
-                  : { bottom: 10 };
-            return (
-              <div className="absolute left-2 right-2 text-center" style={thumbPos}>
-                <span
-                  className="box-decoration-clone rounded px-1 font-display font-extrabold leading-[1.15]"
-                  style={{ fontSize: Math.round(cp.sizePx * 0.42), ...cp.color }}
-                >
-                  {values.subject.trim() || "Your topic here"}
-                </span>
-              </div>
-            );
-          })()}
+        {/* Başlık konu alanından besleniyor; thumbnail'daki alt yazı artık sabit
+            marka metni, böylece altyazı ayarlarının önizlemesi yazılan konunun
+            uzunluğundan etkilenmiyor. */}
+        <div className="mb-3 line-clamp-2 text-center font-display text-sm font-bold leading-snug text-bone">
+          {values.subject.trim() || (
+            <span className="font-normal text-muted/60">Your topic here</span>
+          )}
+        </div>
+
+        {/* Sabit yükseklikli çerçeve: format değişince kutu oranı değişir ama
+            özet paneli aşağı yukarı zıplamaz. */}
+        <div className="mb-[18px] flex h-[200px] items-center justify-center">
+          <div
+            className="relative rounded-xl border border-white/5 transition-[width,height] duration-200"
+            style={{
+              width: previewBox.width,
+              height: previewBox.height,
+              background:
+                "repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 12px, rgba(255,255,255,0.06) 12px 24px)",
+            }}
+          >
+            {(() => {
+              const cp = captionPreviewStyles(captionStyle);
+              // cp.pos'un mutlak px'i editör önizlemesi ölçeğinde; bu küçük
+              // thumbnail'da top/center/bottom'ı ayırt edilir kılmak için
+              // thumbnail-ölçekli konum kullanılır.
+              const thumbPos =
+                captionStyle.position === "top"
+                  ? { top: 8 }
+                  : captionStyle.position === "center"
+                    ? { top: "50%" as const, transform: "translateY(-50%)" }
+                    : { bottom: 10 };
+              return (
+                <div className="absolute left-2 right-2 text-center" style={thumbPos}>
+                  <span
+                    className="box-decoration-clone rounded px-1 font-display font-extrabold leading-[1.15]"
+                    style={{
+                      fontSize: Math.round(
+                        cp.sizePx * 0.42 * previewBox.captionScale,
+                      ),
+                      ...cp.color,
+                    }}
+                  >
+                    {PREVIEW_CAPTION}
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
         </div>
         <div className="flex flex-col gap-2.5 text-[13.5px]">
           <div className="flex justify-between">

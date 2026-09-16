@@ -8,6 +8,7 @@ import {
   BG_COLOR_PRESETS,
   captionPreviewStyles,
   colorLabel,
+  aspectPreviewBox,
 } from "../caption-ui";
 
 describe("caption-ui constants", () => {
@@ -55,5 +56,27 @@ describe("colorLabel", () => {
   });
   it("returns raw hex when unmatched (palette pick)", () => {
     expect(colorLabel("#123456", TEXT_COLOR_PRESETS)).toBe("#123456");
+  });
+});
+
+describe("aspectPreviewBox", () => {
+  it("fits a portrait aspect to the box height", () => {
+    expect(aspectPreviewBox("9:16")).toMatchObject({ width: 113, height: 200 });
+  });
+  it("fits a landscape aspect to the box width", () => {
+    expect(aspectPreviewBox("16:9")).toMatchObject({ width: 176, height: 99 });
+  });
+  it("fits a square aspect to the box width", () => {
+    expect(aspectPreviewBox("1:1")).toMatchObject({ width: 176, height: 176 });
+  });
+  it("scales the caption with the preview width", () => {
+    const portrait = aspectPreviewBox("9:16");
+    const landscape = aspectPreviewBox("16:9");
+    expect(landscape.captionScale).toBeGreaterThan(portrait.captionScale);
+    expect(portrait.captionScale).toBeCloseTo(113 / 112, 5);
+  });
+  it("falls back to 9:16 for an unknown or malformed aspect", () => {
+    expect(aspectPreviewBox("nope")).toEqual(aspectPreviewBox("9:16"));
+    expect(aspectPreviewBox("0:0")).toEqual(aspectPreviewBox("9:16"));
   });
 });
