@@ -16,6 +16,7 @@ const NAV = [
   { href: "/", label: "Dashboard" },
   { href: "/users", label: "Kullanıcılar" },
   { href: "/jobs", label: "Jobs" },
+  { href: "/feedback", label: "Puanlar" },
 ];
 
 export default async function AdminLayout({

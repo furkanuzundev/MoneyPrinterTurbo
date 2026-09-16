@@ -8,13 +8,14 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy" lastUpdated="July 3, 2026">
+    <LegalPage title="Privacy Policy" lastUpdated="September 16, 2026">
       <section>
         <h2>1. What we collect</h2>
         <p>
           When you sign in with Google we receive your name, email address and
           profile picture. We store the topics you submit, the videos you
-          generate, and your credit balance and purchase history. We do not
+          generate, the ratings and comments you leave on your videos, and
+          your credit balance and purchase history. We do not
           see or store your Google password.
         </p>
       </section>
@@ -30,7 +31,8 @@ export default function PrivacyPage() {
         <h2>3. How we use your data</h2>
         <p>
           We use your data to run the service: generating your videos, keeping
-          your library, and emailing you about your account. We don&apos;t
+          your library, and emailing you about your account. Video ratings
+          and comments help us improve how videos are made. We don&apos;t
           sell your data, and we never post to your social accounts.
         </p>
       </section>
@@ -44,7 +46,9 @@ export default function PrivacyPage() {
       <section>
         <h2>5. Retention and deletion</h2>
         <p>
-          Your videos stay in your library until you delete them. You can
+          Your videos stay in your library until you delete them. Ratings you
+          left are kept after a video is deleted, and removed together with
+          your account. You can
           request full deletion of your account and data at any time by
           emailing{" "}
           <a href="mailto:support@reelate.org" className="underline">

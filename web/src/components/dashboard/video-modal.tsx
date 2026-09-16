@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { VideoCardData } from "./video-grid";
 import { CaptionSafeVideo } from "@/components/video/caption-safe-video";
+import { VideoRating } from "./video-rating";
 
 const POST_TARGETS = [
   { label: "TikTok", href: "https://www.tiktok.com/upload" },
@@ -22,6 +23,7 @@ export function VideoModal({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nudgeRating, setNudgeRating] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -58,7 +60,10 @@ export function VideoModal({
         className="grid max-h-full w-full max-w-[780px] overflow-y-auto rounded-[22px] border border-white/10 bg-[#141310] shadow-[0_40px_100px_rgba(0,0,0,0.6)] sm:grid-cols-[280px_1fr]"
       >
         <div className="flex items-center justify-center bg-black">
-          <CaptionSafeVideo src={`/api/videos/${video.id}`} />
+          <CaptionSafeVideo
+            src={`/api/videos/${video.id}`}
+            onEnded={() => setNudgeRating(true)}
+          />
         </div>
         <div className="relative p-6 sm:p-7">
           <button
@@ -96,12 +101,20 @@ export function VideoModal({
           <div className="mb-3.5 flex gap-2.5">
             <a
               href={`/api/videos/${video.id}?download=1`}
+              onClick={() => setNudgeRating(true)}
               className="flex-1 rounded-[11px] bg-caption p-3 text-center text-sm font-bold text-caption-ink transition-opacity hover:opacity-90"
             >
               ↓ Download MP4
             </a>
           </div>
-          <div className="mb-2 mt-4 font-mono-data text-[10.5px] uppercase text-muted/70">
+          <div className="mb-5 mt-4">
+            <VideoRating
+              jobId={video.id}
+              source="library"
+              nudge={nudgeRating}
+            />
+          </div>
+          <div className="mb-2 font-mono-data text-[10.5px] uppercase text-muted/70">
             Post to
           </div>
           <div className="mb-6 flex gap-2">

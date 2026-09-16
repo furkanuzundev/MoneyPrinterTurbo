@@ -1,6 +1,7 @@
 import { desc, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
-import { creditLedger, purchases, users, videoJobs } from "@/db/schema";
+import { creditLedger, purchases, users, videoFeedback, videoJobs } from "@/db/schema";
+import type { FeedbackSource, FeedbackTag } from "@/lib/feedback/rating";
 
 export type DayValue = { day: string; value: number };
 export type JobsDay = { day: string; done: number; failed: number; inProgress: number };
@@ -263,5 +264,158 @@ export async function listJobs(
     .leftJoin(users, eq(videoJobs.userId, users.id))
     .where(where)
     .orderBy(desc(videoJobs.createdAt))
+    .limit(limit);
+}
+
+export type FeedbackBreakdownRow = {
+  key: string;
+  count: number;
+  average: number;
+  positive: number;
+};
+
+export type FeedbackStats = {
+  totals: {
+    ratings: number;
+    average: number;
+    positive: number; // 4–5 yıldız
+    negative: number; // 1–2 yıldız
+    doneJobs: number;
+    ratedDoneJobs: number; // yanıt oranı = ratedDoneJobs / doneJobs
+  };
+  distribution: { rating: number; count: number }[];
+  tags: { tag: FeedbackTag; count: number }[];
+  byLocale: FeedbackBreakdownRow[];
+  byLength: FeedbackBreakdownRow[];
+  byAspect: FeedbackBreakdownRow[];
+};
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+// Snapshot'tan okunur: video silinse de kırılımlarda sayılsın.
+async function feedbackBreakdown(
+  db: Db,
+  keyExpr: ReturnType<typeof sql>,
+  orderExpr: ReturnType<typeof sql>,
+  since: ReturnType<typeof sql>,
+): Promise<FeedbackBreakdownRow[]> {
+  const result = await db.execute(sql`
+    SELECT ${keyExpr} AS key,
+           count(*)::int AS count,
+           avg(rating)::float AS average,
+           count(*) FILTER (WHERE rating >= 4)::int AS positive
+    FROM video_feedback
+    WHERE created_at >= ${since}
+    GROUP BY 1
+    ORDER BY ${orderExpr}
+  `);
+  return (result.rows as Record<string, unknown>[]).map((r) => ({
+    key: String(r.key),
+    count: Number(r.count),
+    average: round2(Number(r.average)),
+    positive: Number(r.positive),
+  }));
+}
+
+export async function getFeedbackStats(db: Db, days = 30): Promise<FeedbackStats> {
+  const since = sql`now() - make_interval(days => ${days})`;
+
+  const totalsResult = await db.execute(sql`
+    SELECT
+      count(*)::int AS ratings,
+      coalesce(avg(rating), 0)::float AS average,
+      count(*) FILTER (WHERE rating >= 4)::int AS positive,
+      count(*) FILTER (WHERE rating <= 2)::int AS negative,
+      (SELECT count(*)::int FROM video_jobs WHERE status = 'done' AND created_at >= ${since}) AS done_jobs,
+      (SELECT count(*)::int FROM video_jobs j
+        WHERE j.status = 'done' AND j.created_at >= ${since}
+          AND EXISTS (SELECT 1 FROM video_feedback f WHERE f.job_id = j.id)) AS rated_done_jobs
+    FROM video_feedback
+    WHERE created_at >= ${since}
+  `);
+  const t = totalsResult.rows[0] as Record<string, number>;
+
+  const dist = await db
+    .select({ rating: videoFeedback.rating, count: sql<number>`count(*)::int` })
+    .from(videoFeedback)
+    .where(sql`${videoFeedback.createdAt} >= ${since}`)
+    .groupBy(videoFeedback.rating);
+  const distMap = new Map(dist.map((d) => [d.rating, d.count]));
+
+  const tagsResult = await db.execute(sql`
+    SELECT tag, count(*)::int AS count
+    FROM video_feedback, jsonb_array_elements_text(tags) AS tag
+    WHERE created_at >= ${since}
+    GROUP BY tag
+    ORDER BY count DESC, tag
+  `);
+
+  return {
+    totals: {
+      ratings: Number(t.ratings),
+      average: round2(Number(t.average)),
+      positive: Number(t.positive),
+      negative: Number(t.negative),
+      doneJobs: Number(t.done_jobs),
+      ratedDoneJobs: Number(t.rated_done_jobs),
+    },
+    distribution: [1, 2, 3, 4, 5].map((rating) => ({
+      rating,
+      count: distMap.get(rating) ?? 0,
+    })),
+    tags: (tagsResult.rows as Record<string, unknown>[]).map((r) => ({
+      tag: r.tag as FeedbackTag,
+      count: Number(r.count),
+    })),
+    // Ses adının ilk iki parçası dil-bölge kodu: "en-US-JennyNeural-Female" → "en-US"
+    byLocale: await feedbackBreakdown(
+      db,
+      sql`split_part(snapshot->>'voice', '-', 1) || '-' || split_part(snapshot->>'voice', '-', 2)`,
+      sql`count DESC, key`,
+      since,
+    ),
+    byLength: await feedbackBreakdown(
+      db,
+      sql`snapshot->>'targetSeconds'`,
+      sql`(snapshot->>'targetSeconds')::int`,
+      since,
+    ),
+    byAspect: await feedbackBreakdown(db, sql`snapshot->>'aspect'`, sql`count DESC, key`, since),
+  };
+}
+
+export type AdminFeedbackRow = {
+  id: number;
+  jobId: string | null;
+  userEmail: string | null;
+  subject: string;
+  rating: number;
+  tags: FeedbackTag[];
+  comment: string | null;
+  source: FeedbackSource;
+  updatedAt: Date;
+};
+
+export async function listFeedback(
+  db: Db,
+  opts: { lowOnly?: boolean; limit?: number },
+): Promise<AdminFeedbackRow[]> {
+  const limit = Math.min(500, Math.max(1, opts.limit ?? 100));
+  return db
+    .select({
+      id: videoFeedback.id,
+      jobId: videoFeedback.jobId,
+      userEmail: users.email,
+      subject: sql<string>`${videoFeedback.snapshot}->>'subject'`,
+      rating: videoFeedback.rating,
+      tags: videoFeedback.tags,
+      comment: videoFeedback.comment,
+      source: videoFeedback.source,
+      updatedAt: videoFeedback.updatedAt,
+    })
+    .from(videoFeedback)
+    .leftJoin(users, eq(videoFeedback.userId, users.id))
+    .where(opts.lowOnly ? sql`${videoFeedback.rating} <= 3` : sql`true`)
+    .orderBy(desc(videoFeedback.updatedAt), desc(videoFeedback.id))
     .limit(limit);
 }

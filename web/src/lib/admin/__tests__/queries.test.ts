@@ -5,7 +5,9 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import {
   getDashboardStats,
+  getFeedbackStats,
   getUserDetail,
+  listFeedback,
   listJobs,
   listUsers,
 } from "../queries";
@@ -155,5 +157,103 @@ describe("listJobs", () => {
     const failed = await listJobs(db, { status: "failed" });
     expect(failed).toHaveLength(1);
     expect(failed[0].error).toBe("boom");
+  });
+});
+
+describe("feedback analytics", () => {
+  const SNAP = {
+    subject: "morning habits",
+    aspect: "9:16",
+    voice: "en-US-JennyNeural-Female",
+    targetSeconds: 60,
+    hasScenes: false,
+  };
+
+  async function seedFeedback() {
+    const doneJobs = await db
+      .insert(schema.videoJobs)
+      .values(
+        [0, 1, 2].map(() => ({
+          ...JOB_BASE,
+          terms: [...JOB_BASE.terms],
+          userId: aliceId,
+          status: "done" as const,
+        })),
+      )
+      .returning();
+    await db.insert(schema.videoFeedback).values([
+      { jobId: doneJobs[0].id, userId: aliceId, rating: 5, source: "done_screen", snapshot: SNAP },
+      {
+        jobId: doneJobs[1].id,
+        userId: aliceId,
+        rating: 2,
+        tags: ["voice", "visuals"],
+        comment: "robotic voice",
+        source: "library",
+        snapshot: { ...SNAP, voice: "tr-TR-EmelNeural-Female", targetSeconds: 30 },
+      },
+      // Silinmiş video: job_id null, snapshot hâlâ sayılır.
+      {
+        jobId: null,
+        userId: bobId,
+        rating: 1,
+        tags: ["visuals"],
+        source: "library",
+        snapshot: { ...SNAP, targetSeconds: 30 },
+      },
+    ]);
+  }
+
+  it("summarises ratings, reasons and breakdowns", async () => {
+    await seedFeedback();
+    const stats = await getFeedbackStats(db, 30);
+    expect(stats.totals).toEqual({
+      ratings: 3,
+      average: 2.67,
+      positive: 1,
+      negative: 2,
+      // done işler: beforeEach'ten 1 + seed'den 3 = 4; bunların 2'si puanlı
+      doneJobs: 4,
+      ratedDoneJobs: 2,
+    });
+    expect(stats.distribution).toEqual([
+      { rating: 1, count: 1 },
+      { rating: 2, count: 1 },
+      { rating: 3, count: 0 },
+      { rating: 4, count: 0 },
+      { rating: 5, count: 1 },
+    ]);
+    expect(stats.tags).toEqual([
+      { tag: "visuals", count: 2 },
+      { tag: "voice", count: 1 },
+    ]);
+    expect(stats.byLocale).toEqual([
+      { key: "en-US", count: 2, average: 3, positive: 1 },
+      { key: "tr-TR", count: 1, average: 2, positive: 0 },
+    ]);
+    expect(stats.byLength).toEqual([
+      { key: "30", count: 2, average: 1.5, positive: 0 },
+      { key: "60", count: 1, average: 5, positive: 1 },
+    ]);
+    expect(stats.byAspect).toEqual([
+      { key: "9:16", count: 3, average: 2.67, positive: 1 },
+    ]);
+  });
+
+  it("lists recent feedback, optionally only low ratings", async () => {
+    await seedFeedback();
+    const all = await listFeedback(db, {});
+    expect(all).toHaveLength(3);
+    const low = await listFeedback(db, { lowOnly: true });
+    expect(low.map((r) => r.rating).sort()).toEqual([1, 2]);
+    const robotic = low.find((r) => r.comment === "robotic voice")!;
+    expect(robotic).toMatchObject({
+      userEmail: "alice@example.com",
+      subject: "morning habits",
+      tags: ["voice", "visuals"],
+      source: "library",
+    });
+    expect(robotic.jobId).not.toBeNull();
+    expect(low.find((r) => r.rating === 1)!.jobId).toBeNull();
   });
 });

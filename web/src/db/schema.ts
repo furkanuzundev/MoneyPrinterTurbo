@@ -1,4 +1,5 @@
 import {
+  check,
   integer,
   jsonb,
   pgTable,
@@ -11,6 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters";
+import type { FeedbackSource, FeedbackTag } from "@/lib/feedback/rating";
 
 // ---- Auth.js standart tablolar (https://authjs.dev/getting-started/adapters/drizzle)
 export const users = pgTable("user", {
@@ -125,6 +127,38 @@ export const videoJobs = pgTable("video_jobs", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+// Kullanıcının videoya verdiği puan. İş silinse de satır kalır (job_id null
+// olur): beğenilmeyip silinen videolar en değerli veri. Snapshot bu yüzden var.
+export const videoFeedback = pgTable(
+  "video_feedback",
+  {
+    id: serial("id").primaryKey(),
+    jobId: uuid("job_id").references(() => videoJobs.id, { onDelete: "set null" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    tags: jsonb("tags").$type<FeedbackTag[]>().notNull().default([]),
+    comment: text("comment"),
+    source: text("source").$type<FeedbackSource>().notNull(),
+    snapshot: jsonb("snapshot")
+      .$type<{
+        subject: string;
+        aspect: string;
+        voice: string;
+        targetSeconds: number;
+        hasScenes: boolean;
+      }>()
+      .notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("video_feedback_job_unique").on(t.jobId),
+    check("video_feedback_rating_range", sql`${t.rating} BETWEEN 1 AND 5`),
+  ],
+);
 
 export const purchases = pgTable("purchases", {
   id: serial("id").primaryKey(),

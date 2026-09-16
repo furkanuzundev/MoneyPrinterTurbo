@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { RENDER_STAGES, stageIndexForProgress } from "@/lib/jobs/stages";
 import { PostTo } from "./post-to";
+import { VideoRating } from "./video-rating";
 import { CaptionSafeVideo } from "@/components/video/caption-safe-video";
 
 type JobEvent = {
@@ -160,6 +161,8 @@ function DoneView({
   duration: string;
   creditsLeft?: number;
 }) {
+  const [nudgeRating, setNudgeRating] = useState(false);
+
   return (
     <div className="grid items-center gap-9 pb-8 pt-4 lg:grid-cols-[280px_1fr]">
       <div className="rePop flex justify-center">
@@ -167,7 +170,10 @@ function DoneView({
           <div className="absolute -inset-6 bg-[radial-gradient(circle_at_50%_40%,rgba(244,198,58,0.2),transparent_65%)] blur-lg" />
           <div className="relative h-[527px] w-[248px] rounded-[30px] border border-white/10 bg-elevated p-[11px] shadow-[0_34px_80px_rgba(0,0,0,0.55)]">
             <div className="flex h-full w-full items-center overflow-hidden rounded-[22px] bg-black">
-              <CaptionSafeVideo src={`/api/videos/${jobId}`} />
+              <CaptionSafeVideo
+                src={`/api/videos/${jobId}`}
+                onEnded={() => setNudgeRating(true)}
+              />
             </div>
           </div>
         </div>
@@ -187,10 +193,15 @@ function DoneView({
         <div className="mb-3.5 flex flex-wrap gap-3">
           <a
             href={`/api/videos/${jobId}?download=1`}
+            onClick={() => setNudgeRating(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-caption px-[22px] py-[13px] text-[15px] font-bold text-caption-ink transition-opacity hover:opacity-90"
           >
             ↓ Download MP4
           </a>
+        </div>
+
+        <div className="mb-2 mt-6">
+          <VideoRating jobId={jobId} source="done_screen" nudge={nudgeRating} />
         </div>
 
         <div className="mb-2 mt-6 font-mono-data text-[11px] uppercase tracking-[0.06em] text-muted/70">

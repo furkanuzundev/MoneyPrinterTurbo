@@ -19,11 +19,13 @@ export function CaptionSafeVideo({
   poster,
   autoPlay = false,
   className = "",
+  onEnded,
 }: {
   src: string;
   poster?: string;
   autoPlay?: boolean;
   className?: string;
+  onEnded?: () => void;
 }) {
   return (
     <div
@@ -38,6 +40,7 @@ export function CaptionSafeVideo({
         autoPlay={autoPlay}
         playsInline
         preload="metadata"
+        onEnded={onEnded}
       />
     </div>
   );
