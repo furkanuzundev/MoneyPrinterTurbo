@@ -36,3 +36,23 @@ export function toVideoCardData(job: VideoJobRow): VideoCardData {
     hasScenes: (job.scenes?.length ?? 0) > 0,
   };
 }
+
+// Kütüphane kartındaki durum rozeti. İşlenen işlerde canlı yüzdeyi gösterir;
+// worker işi henüz almadıysa (progress 0) yüzde yerine "Queued" yazar, yoksa
+// kart sonsuza kadar "%0" gösteriyormuş gibi görünüyor.
+export function badgeFor(
+  status: VideoCardData["status"],
+  progress: number | undefined,
+): { label: string; cls: string } {
+  if (status === "ready") {
+    return { label: "Ready", cls: "bg-caption/90 text-caption-ink" };
+  }
+  if (status === "failed") {
+    return { label: "Failed", cls: "bg-destructive/90 text-white" };
+  }
+  const pct = Math.min(100, Math.max(0, Math.round(progress ?? 0)));
+  return {
+    label: pct > 0 ? `${pct}%` : "Queued",
+    cls: "bg-black/55 text-bone/90",
+  };
+}
