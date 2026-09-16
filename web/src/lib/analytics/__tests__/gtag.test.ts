@@ -73,8 +73,17 @@ describe("gtag bootstrap", () => {
     admin.track("caption_rerender", {});
     expect(admin.calls()).toEqual([]);
 
-    const noId = await loadGtag({ measurementId: "" });
-    expect(noId.initGtag()).toBe(false);
+    // Prod ID kodda sabit; boş ID durumunu config modülünü ezerek sına.
+    vi.doMock("../config", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("../config")>()),
+      GA_MEASUREMENT_ID: "",
+    }));
+    try {
+      const noId = await loadGtag({ measurementId: "" });
+      expect(noId.initGtag()).toBe(false);
+    } finally {
+      vi.doUnmock("../config");
+    }
   });
 
   it("track bootstraps on first use so events never precede consent default", async () => {
