@@ -59,7 +59,6 @@ export function BriefStep({
   onCaptionChange: (patch: Partial<CaptionStyle>) => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const currentUrlRef = useRef<string | null>(null);
   const requestSeqRef = useRef(0);
   // Hangi ses için önizleme durumu: null | { id, state }
   const [preview, setPreview] = useState<{ id: string; state: "loading" | "playing" | "error" } | null>(null);
@@ -71,49 +70,26 @@ export function BriefStep({
       audioRef.current.onerror = null;
       audioRef.current = null;
     }
-    if (currentUrlRef.current) {
-      URL.revokeObjectURL(currentUrlRef.current);
-      currentUrlRef.current = null;
-    }
   }
 
   async function playPreview(voiceId: string) {
-    // Çalan varsa durdur ve blob URL'sini serbest bırak.
+    // Klipler build zamanında üretilip public/voice-previews altında statik
+    // sunuluyor (scripts/generate_web_voices.py). Eskiden her tıklama
+    // /api/voice/preview üzerinden Microsoft'un TTS ucuna gidiyordu; aynı
+    // sesi tekrar dinlemek bile ~0.7s sürüyordu.
     stopCurrent();
     const token = ++requestSeqRef.current;
     setPreview({ id: voiceId, state: "loading" });
     try {
-      const res = await fetch("/api/voice/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voiceName: voiceId }),
-      });
-      if (token !== requestSeqRef.current) return;
-      if (!res.ok) throw new Error(`preview ${res.status}`);
-      const blob = await res.blob();
-      if (token !== requestSeqRef.current) return;
-      const url = URL.createObjectURL(blob);
-      if (token !== requestSeqRef.current) {
-        URL.revokeObjectURL(url);
-        return;
-      }
-      const audio = new Audio(url);
+      const audio = new Audio(`/voice-previews/${encodeURIComponent(voiceId)}.mp3`);
       audio.onended = () => {
-        if (currentUrlRef.current === url) {
-          URL.revokeObjectURL(url);
-          currentUrlRef.current = null;
-        }
         setPreview((p) => (p?.id === voiceId ? null : p));
       };
       audio.onerror = () => {
-        if (currentUrlRef.current === url) {
-          URL.revokeObjectURL(url);
-          currentUrlRef.current = null;
-        }
+        if (token !== requestSeqRef.current) return;
         setPreview({ id: voiceId, state: "error" });
       };
       audioRef.current = audio;
-      currentUrlRef.current = url;
       await audio.play();
       if (token !== requestSeqRef.current) return;
       setPreview({ id: voiceId, state: "playing" });
@@ -204,7 +180,9 @@ export function BriefStep({
         <label className="mb-[11px] mt-[22px] block text-sm font-semibold text-bone">
           Voice
         </label>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        {/* en-US 17 ses sunuyor; kaydırma olmadan grid formun geri kalanını
+            ekrandan aşağı itiyor. */}
+        <div className="reScroll grid max-h-[300px] grid-cols-2 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-3">
           {voices.map((v) => {
             const on = values.voice === v.id;
             const d = voiceDisplay(v);
@@ -212,7 +190,12 @@ export function BriefStep({
               <button
                 key={v.id}
                 type="button"
-                onClick={() => onChange({ voice: v.id })}
+                onClick={() => {
+                  onChange({ voice: v.id });
+                  // Seçim yapan tıklama aynı zamanda sesi dinletir; ▶ butonu
+                  // seçim yapmadan dinlemek isteyenler için duruyor.
+                  void playPreview(v.id);
+                }}
                 className={`flex flex-col gap-[5px] rounded-[13px] border p-3.5 text-left transition-colors ${
                   on
                     ? "border-caption bg-caption/10"
