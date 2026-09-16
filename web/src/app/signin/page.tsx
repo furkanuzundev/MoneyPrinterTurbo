@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { signIn } from "@/auth";
+import { redirect } from "next/navigation";
+import { auth, signIn, signOut } from "@/auth";
 import { HeroPhone } from "@/components/landing/hero-phone";
 import { GoogleButton } from "@/components/signin/google-button";
 import { safeCallbackPath } from "@/lib/auth/callback";
+import { signInErrorMessage } from "@/lib/auth/signin";
 import { CREDIT_COST_ROWS, WELCOME_NOTE } from "@/lib/credits/copy";
 import "../landing.css";
 
@@ -18,6 +20,18 @@ export default async function SignInPage({
   // buldu. Tek Google formu kalıyor, sadece çerçeve metni değişiyor.
   const isSignup = params.mode === "signup";
   const redirectTo = safeCallbackPath(params.callbackUrl);
+
+  // Sayfa her ziyaretçiyi anonim sayıyordu. Girişli bir kullanıcı landing'deki
+  // "Start free" ile buraya gelip Google hesap seçicide BAŞKA bir hesap
+  // seçtiğinde Auth.js OAuthAccountNotLinked fırlatıyor ve kullanıcı sessizce
+  // /signin?error=… sayfasına düşüyordu (prod'da görülen hata tam olarak bu).
+  // Oturumu olan ziyaretçi formu hiç görmemeli.
+  const session = await auth();
+  const errorMessage = signInErrorMessage(params.error);
+  // Hatayla dönen kişi tanım gereği girişli olduğundan, koşulsuz yönlendirme
+  // mesajı yutardı; hata varken sayfada kalıp çıkışı teklif ediyoruz.
+  if (session?.user && !errorMessage) redirect(redirectTo);
+  const signedIn = !!session?.user;
 
   return (
     <main className="flex min-h-screen bg-[#0D0C0A] text-bone">
@@ -46,14 +60,41 @@ export default async function SignInPage({
                 : "Type a topic, post a video. Pick up right where you left off."}
             </p>
 
-            <form
-              action={async () => {
-                "use server";
-                await signIn("google", { redirectTo });
-              }}
-            >
-              <GoogleButton signup={isSignup} />
-            </form>
+            {errorMessage && (
+              <div
+                role="alert"
+                className="mb-6 rounded-xl border border-[#f4c63a]/30 bg-[#f4c63a]/10 px-4 py-3.5 text-[13px] leading-normal text-bone"
+              >
+                {errorMessage}
+              </div>
+            )}
+
+            {signedIn ? (
+              // Aynı Google formunu tekrar göstermek aynı hatayı üretirdi:
+              // çıkış yapmadan başka bir hesaba geçilemez.
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/signin" });
+                }}
+              >
+                <button
+                  type="submit"
+                  className="flex w-full items-center justify-center rounded-[13px] bg-white p-[15px] text-[15.5px] font-bold text-[#1a1a1a] shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-90"
+                >
+                  Sign out and use another account
+                </button>
+              </form>
+            ) : (
+              <form
+                action={async () => {
+                  "use server";
+                  await signIn("google", { redirectTo });
+                }}
+              >
+                <GoogleButton signup={isSignup} />
+              </form>
+            )}
 
             <div className="my-[26px] flex items-center gap-3">
               <div className="h-px flex-1 bg-white/10" />

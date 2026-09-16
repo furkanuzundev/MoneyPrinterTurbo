@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { primaryCta } from "@/lib/auth/cta";
 import { HeroPhone } from "./hero-phone";
 import { WatchDemoButton } from "./watch-demo-button";
 
-export function Hero() {
+export function Hero({ signedIn = false }: { signedIn?: boolean }) {
+  const cta = primaryCta(signedIn, "Start free — 5 credits on us");
+
   return (
     <section className="grid items-center gap-14 px-6 pb-16 pt-14 md:px-12 lg:grid-cols-[1.05fr_0.95fr] lg:px-[72px] lg:pb-[72px] lg:pt-[84px]">
       <div>
@@ -26,10 +29,10 @@ export function Hero() {
         </p>
         <div className="mb-5 flex flex-wrap items-center gap-4">
           <Link
-            href="/signin?mode=signup"
+            href={cta.href}
             className="rounded-[13px] bg-caption px-[26px] py-[15px] text-base font-bold text-caption-ink transition-opacity hover:opacity-90"
           >
-            Start free &mdash; 5 credits on us
+            {cta.label}
           </Link>
           <WatchDemoButton />
         </div>

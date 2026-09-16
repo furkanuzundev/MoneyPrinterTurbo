@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { db } from "@/db";
 import {
   DEFAULT_PACKAGES,
@@ -19,6 +20,13 @@ import { LandingFooter } from "@/components/landing/footer";
 import "./landing.css";
 
 export default async function Home() {
+  // Landing artık oturuma duyarlı: girişli ziyaretçiye "Start free" gösterip
+  // Google hesap seçicisine yollamak OAuthAccountNotLinked'in kaynağıydı.
+  // Bunun bedeli, sayfanın statik prerender yerine istek başına render
+  // edilmesi (istek başına bir session sorgusu).
+  const session = await auth();
+  const signedIn = !!session?.user;
+
   // Landing statik prerender edilir; Docker build ortamında DB yoktur.
   // Fiyat GÖSTERİMİ için varsayılanlara düşmek güvenlidir — gerçek ücret
   // her zaman checkout anında sunucuda DB'den doğrulanır.
@@ -31,17 +39,17 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[1240px] flex-col">
-      <LandingHeader />
-      <Hero />
+      <LandingHeader signedIn={signedIn} />
+      <Hero signedIn={signedIn} />
       <PlatformStrip />
       <HowItWorks />
       <FeatureBento />
       <InsideTheEditor />
       <Showcase />
       <FactsStrip />
-      <Pricing packages={packages} />
+      <Pricing packages={packages} signedIn={signedIn} />
       <CreditsFaq />
-      <FinalCta />
+      <FinalCta signedIn={signedIn} />
       <LandingFooter />
     </main>
   );

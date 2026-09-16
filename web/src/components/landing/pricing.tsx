@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CreditCostTable } from "@/components/credits/credit-cost-table";
+import { packageCta } from "@/lib/auth/cta";
 import {
   CREDITS_FREE_NOTE,
   CREDITS_REFUND_NOTE,
@@ -9,7 +10,13 @@ import {
 } from "@/lib/credits/copy";
 import type { CreditPackage } from "@/lib/credits/packages";
 
-export function Pricing({ packages }: { packages: CreditPackage[] }) {
+export function Pricing({
+  packages,
+  signedIn = false,
+}: {
+  packages: CreditPackage[];
+  signedIn?: boolean;
+}) {
   // "save %" en pahalı video başı fiyata (en küçük paket) göre hesaplanır.
   // Video başı fiyat 60 sn referans videoya göre; bir kredi bir video değil.
   const baselinePerVideo = Math.max(
@@ -49,10 +56,10 @@ export function Pricing({ packages }: { packages: CreditPackage[] }) {
               </div>
               <PackageBody pkg={pkg} perVideoLine={perVideoLine} highlight />
               <Link
-                href="/signin?mode=signup"
+                href={packageCta(signedIn, pkg.label).href}
                 className="mt-[26px] rounded-xl bg-caption p-3.5 text-center text-[15px] font-bold text-caption-ink transition-opacity hover:opacity-90"
               >
-                Get {pkg.label}
+                {packageCta(signedIn, pkg.label).label}
               </Link>
             </div>
           ) : (
@@ -62,10 +69,10 @@ export function Pricing({ packages }: { packages: CreditPackage[] }) {
             >
               <PackageBody pkg={pkg} perVideoLine={perVideoLine} />
               <Link
-                href="/signin?mode=signup"
+                href={packageCta(signedIn, pkg.label).href}
                 className="mt-[26px] rounded-xl border border-white/15 p-[13px] text-center text-[15px] font-bold text-bone transition-colors hover:border-white/30"
               >
-                Get {pkg.label}
+                {packageCta(signedIn, pkg.label).label}
               </Link>
             </div>
           );

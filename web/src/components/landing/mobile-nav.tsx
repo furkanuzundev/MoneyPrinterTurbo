@@ -9,6 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { primaryCta, signInCta } from "@/lib/auth/cta";
 import { NAV_LINKS } from "./nav-links";
 
 /**
@@ -16,8 +17,10 @@ import { NAV_LINKS } from "./nav-links";
  * konmamıştı — telefonda Features / How it works / Pricing / Showcase'e
  * ulaşmanın yolu yoktu.
  */
-export function MobileNav() {
+export function MobileNav({ signedIn = false }: { signedIn?: boolean }) {
   const [open, setOpen] = useState(false);
+  const primary = primaryCta(signedIn);
+  const secondary = signInCta(signedIn);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -58,19 +61,21 @@ export function MobileNav() {
         </nav>
         <div className="mt-6 flex flex-col gap-2.5 px-4">
           <Link
-            href="/signin?mode=signup"
+            href={primary.href}
             onClick={() => setOpen(false)}
             className="rounded-[11px] bg-caption py-3 text-center text-[15px] font-bold text-caption-ink"
           >
-            Start free
+            {primary.label}
           </Link>
-          <Link
-            href="/signin"
-            onClick={() => setOpen(false)}
-            className="rounded-[11px] border border-white/12 py-3 text-center text-[15px] font-semibold text-bone"
-          >
-            Sign in
-          </Link>
+          {secondary && (
+            <Link
+              href={secondary.href}
+              onClick={() => setOpen(false)}
+              className="rounded-[11px] border border-white/12 py-3 text-center text-[15px] font-semibold text-bone"
+            >
+              {secondary.label}
+            </Link>
+          )}
         </div>
       </SheetContent>
     </Sheet>
