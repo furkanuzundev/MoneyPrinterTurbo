@@ -19,7 +19,7 @@ function getOpenAI(): OpenAI {
 // Locale kodu → İngilizce dil adı (LLM prompt'unda kullanılır). Hem tam
 // locale (tr-TR) hem eski kısa kodlar (tr) desteklenir. Bilinmeyen kod
 // çağıran tarafta "English"e düşer.
-const LANGUAGE_NAMES: Record<string, string> = {
+export const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   tr: "Turkish",
   "en-US": "English",
@@ -58,7 +58,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
 // CJK fontlarda tam-genişlik geliyor. Motor bunu yine de normalize ediyor
 // (app/utils/utils.py normalize_punctuation), bu satır sadece girdiyi
 // baştan temiz tutuyor.
-const PUNCTUATION_RULE =
+export const PUNCTUATION_RULE =
   "Use straight ASCII punctuation only: ' and \" \u2014 never curly quotes, " +
   "en/em dashes, or the ellipsis character.";
 

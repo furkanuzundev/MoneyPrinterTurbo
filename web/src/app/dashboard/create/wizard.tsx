@@ -2,15 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { creditsForDuration } from "@/lib/credits/pricing";
 import { VOICES } from "@/lib/jobs/options";
 import { scriptFromScenes, type Scene, DEFAULT_CAPTION_STYLE, type CaptionStyle } from "@/lib/jobs/scenes";
 import { formatDuration } from "@/lib/jobs/display";
+import {
+  clearSavedSettings,
+  loadSavedSettings,
+  storeSettings,
+} from "@/lib/jobs/saved-brief";
 import { JobLive } from "@/components/dashboard/job-live";
 import { StepIndicator } from "./step-indicator";
 import { BriefStep, type BriefValues } from "./brief-step";
 import { ScriptStep } from "./script-step";
+
+// window.localStorage getter'ı bile bazı tarayıcılarda (engellenmiş site
+// verisi) fırlatabiliyor.
+function browserStorage(): Storage | undefined {
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
 
 export function Wizard({ balance }: { balance: number }) {
   const router = useRouter();
@@ -25,10 +40,31 @@ export function Wizard({ balance }: { balance: number }) {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [terms, setTerms] = useState<string[]>([]);
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle>(DEFAULT_CAPTION_STYLE);
+  const [saveSettings, setSaveSettings] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobDone, setJobDone] = useState(false);
   const [busy, setBusy] = useState<"script" | "job" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // localStorage sunucuda yok; kayıtlı ayarlar mount sonrası yüklenir.
+  useEffect(() => {
+    const saved = loadSavedSettings(browserStorage());
+    if (!saved) return;
+    const { captionStyle: savedCaption, ...savedBrief } = saved;
+    setBrief((b) => ({ ...b, ...savedBrief }));
+    setCaptionStyle(savedCaption);
+    setSaveSettings(true);
+  }, []);
+
+  useEffect(() => {
+    if (!saveSettings) return;
+    storeSettings(browserStorage(), { ...brief, captionStyle });
+  }, [saveSettings, brief, captionStyle]);
+
+  function toggleSaveSettings(on: boolean) {
+    setSaveSettings(on);
+    if (!on) clearSavedSettings(browserStorage());
+  }
 
   const script = scriptFromScenes(scenes);
   const credits = creditsForDuration(brief.targetSeconds);
@@ -148,6 +184,8 @@ export function Wizard({ balance }: { balance: number }) {
           busy={busy === "script"}
           captionStyle={captionStyle}
           onCaptionChange={(patch) => setCaptionStyle((s) => ({ ...s, ...patch }))}
+          saveSettings={saveSettings}
+          onSaveSettingsChange={toggleSaveSettings}
         />
       )}
 

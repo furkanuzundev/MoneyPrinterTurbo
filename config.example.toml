@@ -44,6 +44,13 @@ tls_verify = true
 # Pixabay, Coverr) round-robin harmanla çekilir; böylece topic'e daha
 # çeşitli klip havuzu oluşur. Bir kaynağın key'i boşsa o kaynak sessizce
 # atlanır. video_source yalnızca tercih edilen (ilk denenecek) kaynağı belirtir.
+#
+# Klipler seçilen formatın en-boy oranına göre alınır (dikey 9:16, yatay 16:9);
+# kare seçilirse her orandan klip alınır ve render sırasında ortadan kırpılır.
+# Aday havuzu gereken sürenin 3 katına ulaşana kadar sonraki sayfalar çekilir.
+material_search_max_pages = 3
+# Bundan kısa klipler elenir (klip süresi ayarından büyük olamaz).
+material_min_clip_duration = 3
 
 # Pexels API Key
 # Register at https://www.pexels.com/api/ to get your API key.

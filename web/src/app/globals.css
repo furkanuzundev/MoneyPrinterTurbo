@@ -150,6 +150,31 @@ body {
   animation: re-nudge 1.2s ease-in-out 2;
 }
 
+/* Kaydırılabilir panellerde tarayıcının gri varsayılan çubuğu Reelate
+   paletinin dışında kalıyordu; caption sarısının soluk tonuna çekiyoruz. */
+.reScroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-caption-dim) 40%, transparent)
+    transparent;
+}
+
+.reScroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.reScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.reScroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-caption-dim) 40%, transparent);
+  border-radius: 999px;
+}
+
+.reScroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-caption);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reShimmer,
   .rePop,

@@ -501,6 +501,37 @@ class TestVideoService(unittest.TestCase):
         self.assertEqual(result, combined_video_path)
         self.assertEqual(write_mock.call_count, 4)
 
+    def _two_tone_clip(self, width, height, band):
+        import numpy as np
+        from moviepy import ImageClip
+
+        # Sol `band` sütun kırmızı, geri kalanı mavi.
+        frame = np.zeros((height, width, 3), dtype=np.uint8)
+        frame[:, :, 2] = 255
+        frame[:, :band] = (255, 0, 0)
+        return ImageClip(frame).with_duration(1)
+
+    def test_fit_clip_to_frame_center_crops_for_square(self):
+        """Kare çıktıda yatay klip siyah bantla değil, ortadan kırpılarak dolar."""
+        clip = self._two_tone_clip(1920, 1080, band=400)
+        fitted = vd._fit_clip_to_frame(clip, 1080, 1080, vd.VideoAspect.square)
+        self.assertEqual(tuple(fitted.size), (1080, 1080))
+        frame = fitted.get_frame(0)
+        # Kırmızı kenar bandı kırpıldı; köşeler mavi (letterbox olsaydı siyah).
+        self.assertEqual(tuple(frame[0, 0]), (0, 0, 255))
+        self.assertEqual(tuple(frame[-1, -1]), (0, 0, 255))
+
+    def test_fit_clip_to_frame_keeps_letterbox_for_portrait(self):
+        clip = self._two_tone_clip(1920, 1080, band=0)
+        fitted = vd._fit_clip_to_frame(clip, 1080, 1920, vd.VideoAspect.portrait)
+        self.assertEqual(tuple(fitted.size), (1080, 1920))
+        self.assertEqual(tuple(fitted.get_frame(0)[0, 0]), (0, 0, 0))
+
+    def test_fit_clip_to_frame_scales_same_ratio(self):
+        clip = self._two_tone_clip(720, 1280, band=0)
+        fitted = vd._fit_clip_to_frame(clip, 1080, 1920, vd.VideoAspect.portrait)
+        self.assertEqual(tuple(fitted.size), (1080, 1920))
+
     def test_prioritize_unique_source_clips_uses_each_source_before_reuse(self):
         """
         随机模式下，一个长素材会被拆成多个片段。调度层应先让每个源素材

@@ -73,3 +73,27 @@ export function captionPreviewStyles(style: CaptionStyle): {
   const sizePx = SIZES.find((s) => s.id === style.size)?.px ?? 23;
   return { pos, color, sizePx };
 }
+
+// Brief özet panelindeki önizleme küçük resmi eskiden sabit 9:16 idi; format
+// seçimi değişse bile aynı dikey kutu duruyordu. Seçilen en-boy oranını sabit
+// bir çerçeveye (176x200) oturtup gerçek px ölçüsünü döndürüyoruz, böylece
+// panel yüksekliği format değişince zıplamıyor.
+const PREVIEW_MAX_W = 176;
+const PREVIEW_MAX_H = 200;
+// Altyazı px'i 112 genişlikteki eski thumbnail'a göre ayarlanmıştı; kutu
+// genişledikçe yazı da onunla birlikte ölçekleniyor.
+const PREVIEW_BASE_W = 112;
+
+export function aspectPreviewBox(aspect: string): {
+  width: number;
+  height: number;
+  captionScale: number;
+} {
+  const [w, h] = aspect.split(":").map(Number);
+  const valid = Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0;
+  const ratio = valid ? w / h : 9 / 16;
+  const h0 = Math.min(PREVIEW_MAX_W / ratio, PREVIEW_MAX_H);
+  const width = Math.round(h0 * ratio);
+  const height = Math.round(h0);
+  return { width, height, captionScale: width / PREVIEW_BASE_W };
+}

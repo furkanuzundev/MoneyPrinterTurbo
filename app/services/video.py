@@ -561,6 +561,48 @@ def get_bgm_file(bgm_type: str = "random", bgm_file: str = ""):
     return ""
 
 
+def _fit_clip_to_frame(clip, video_width: int, video_height: int, aspect: VideoAspect):
+    """Klibi hedef kareye oturtur.
+
+    Aynı oran: ölçeklenir. Kare çıktı: stokta kare klip neredeyse olmadığı
+    için ortadan kırpılıp doldurulur. Diğer formatlarda (materyal seçimi
+    oranı zaten tutturduğundan nadir) siyah bantla sığdırılır.
+    """
+    clip_w, clip_h = clip.size
+    if clip_w == video_width and clip_h == video_height:
+        return clip
+
+    clip_ratio = clip_w / clip_h
+    video_ratio = video_width / video_height
+    logger.debug(f"resizing clip, source: {clip_w}x{clip_h}, ratio: {clip_ratio:.2f}, target: {video_width}x{video_height}, ratio: {video_ratio:.2f}")
+
+    if clip_ratio == video_ratio:
+        return clip.resized(new_size=(video_width, video_height))
+
+    if VideoAspect(aspect) == VideoAspect.square:
+        if clip_ratio > video_ratio:
+            crop_w, crop_h = round(clip_h * video_ratio), clip_h
+        else:
+            crop_w, crop_h = clip_w, round(clip_w / video_ratio)
+        x1 = (clip_w - crop_w) // 2
+        y1 = (clip_h - crop_h) // 2
+        return clip.cropped(
+            x1=x1, y1=y1, x2=x1 + crop_w, y2=y1 + crop_h
+        ).resized(new_size=(video_width, video_height))
+
+    if clip_ratio > video_ratio:
+        scale_factor = video_width / clip_w
+    else:
+        scale_factor = video_height / clip_h
+
+    new_width = int(clip_w * scale_factor)
+    new_height = int(clip_h * scale_factor)
+
+    background = ColorClip(size=(video_width, video_height), color=(0, 0, 0)).with_duration(clip.duration)
+    clip_resized = clip.resized(new_size=(new_width, new_height)).with_position("center")
+    return CompositeVideoClip([background, clip_resized])
+
+
 def combine_videos(
     combined_video_path: str,
     video_paths: List[str],
@@ -649,29 +691,10 @@ def combine_videos(
             clip = _open_video_clip_quietly(subclipped_item.file_path).subclipped(
                 subclipped_item.start_time, subclipped_item.end_time
             )
-            clip_duration = clip.duration
             # Not all videos are same size, so we need to resize them
             clip_w, clip_h = clip.size
-            if clip_w != video_width or clip_h != video_height:
-                clip_ratio = clip.w / clip.h
-                video_ratio = video_width / video_height
-                logger.debug(f"resizing clip, source: {clip_w}x{clip_h}, ratio: {clip_ratio:.2f}, target: {video_width}x{video_height}, ratio: {video_ratio:.2f}")
-                
-                if clip_ratio == video_ratio:
-                    clip = clip.resized(new_size=(video_width, video_height))
-                else:
-                    if clip_ratio > video_ratio:
-                        scale_factor = video_width / clip_w
-                    else:
-                        scale_factor = video_height / clip_h
+            clip = _fit_clip_to_frame(clip, video_width, video_height, aspect)
 
-                    new_width = int(clip_w * scale_factor)
-                    new_height = int(clip_h * scale_factor)
-
-                    background = ColorClip(size=(video_width, video_height), color=(0, 0, 0)).with_duration(clip_duration)
-                    clip_resized = clip.resized(new_size=(new_width, new_height)).with_position("center")
-                    clip = CompositeVideoClip([background, clip_resized])
-                    
             shuffle_side = random.choice(["left", "right", "top", "bottom"])
             if transition_value in (None, VideoTransitionMode.none.value):
                 clip = clip

@@ -58,3 +58,48 @@ describe("formatDuration", () => {
     expect(formatDuration(150)).toBe("2.5 min");
   });
 });
+
+describe("expanded voice catalog", () => {
+  // Azure'ın "-V2" sesleri azure_tts_v2() yoluna gidiyor ve config.azure
+  // speech_key/speech_region istiyor (app/services/voice.py). config.toml'da
+  // ikisi de boş, yani bu sesler seçilirse hem önizleme hem üretim patlar.
+  it("excludes azure v2 voices the backend cannot synthesize", () => {
+    for (const v of VOICES) {
+      expect(v.id).not.toMatch(/-V2-(Male|Female)$/);
+    }
+  });
+
+  it("has no duplicate voice ids", () => {
+    const ids = VOICES.map((v) => v.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("surfaces every backend voice for the richest languages", () => {
+    const countFor = (code: string) =>
+      VOICES.filter((v) => v.language === code).length;
+    expect(countFor("en-US")).toBe(17);
+    expect(countFor("zh-CN")).toBe(8);
+    expect(countFor("de-DE")).toBe(6);
+    expect(countFor("fr-FR")).toBe(5);
+    expect(countFor("en-GB")).toBe(5);
+    expect(countFor("it-IT")).toBe(4);
+  });
+
+  it("labels multilingual voices readably", () => {
+    const ava = VOICES.find((v) => v.id === "en-US-AvaMultilingualNeural-Female");
+    expect(ava?.label).toBe("Ava Multilingual (US, Female)");
+  });
+
+  it("keeps every language covered by both genders where the backend offers them", () => {
+    const enUs = VOICES.filter((v) => v.language === "en-US").map((v) => v.id);
+    expect(enUs).toContain("en-US-JennyNeural-Female");
+    expect(enUs).toContain("en-US-GuyNeural-Male");
+  });
+});
+
+describe("voice region labels", () => {
+  it("keeps the friendly UK label for en-GB instead of the raw locale", () => {
+    const ryan = VOICES.find((v) => v.id === "en-GB-RyanNeural-Male");
+    expect(ryan?.label).toBe("Ryan (UK, Male)");
+  });
+});
